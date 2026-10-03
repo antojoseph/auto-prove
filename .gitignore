@@ -12,3 +12,5 @@ runs/live-*/
 **/stderr.log
 runs/reproduced-*/
 runs/demo/live-validation.html
+.yukon/runs/
+.yukon/score.json

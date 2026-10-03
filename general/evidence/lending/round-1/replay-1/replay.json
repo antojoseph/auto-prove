@@ -1,0 +1,85 @@
+{
+  "status": "replayed",
+  "input_digest": "d375ec30d149b5943d9653dc2b7790b77c9332bc4f686224603f79e28de796c0",
+  "trace_digest": "628e21ddd6f57a34afd784ae56283c75e347c374513dca2dff85937d64ebd727",
+  "scope": "concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof",
+  "intent_connection": "fallible interpretation; creator review pending",
+  "transactions": [
+    {
+      "action": {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x08ba943cbf95c6634c0feeeedeededbdf877446c765b98b22dd1ba24e8b72b0a",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x21e2dd46f383435c50e64d9777aeb5d84113f6f5422d63fec1787eaaa4b73d07",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "borrow(uint256)",
+        "arguments": [
+          "50"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0x307c001eee1010a392ebf39d8f4a5d99ede07d461fba03adfdba95b13dfb5619",
+      "gas_used": 53912
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "100"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0x1bfd2de398fc062871518142f5d035ab553f89e4622394e2dd83717d5a84ea79",
+      "gas_used": 29395
+    }
+  ],
+  "observations": [
+    {
+      "label": "borrower debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000032"
+    },
+    {
+      "label": "borrower collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "label": "other depositor collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:0"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000064"
+    }
+  ],
+  "contract_address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "contract_balance_wei": 50
+}

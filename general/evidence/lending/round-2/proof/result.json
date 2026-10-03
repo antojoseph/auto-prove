@@ -1,0 +1,10 @@
+{
+  "status": "inconclusive",
+  "target_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+  "kernel_checked": false,
+  "target_matched": false,
+  "independent_kernels": [],
+  "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+  "contract_correspondence": "not_proved",
+  "reason": "Solution compilation/export failed; inspect log"
+}

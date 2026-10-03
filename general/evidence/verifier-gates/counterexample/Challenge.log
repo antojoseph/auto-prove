@@ -1,0 +1,8 @@
+$ lake update
+info: autoprove: no previous manifest, creating one from scratch
+info: toolchain not updated; no toolchain information found
+$ lake build Challenge
+✔ [2/4] Built Model (162ms)
+⚠ [3/4] Built Challenge (157ms)
+warning: Challenge.lean:5:8: declaration uses `sorry`
+Build completed successfully (4 jobs).

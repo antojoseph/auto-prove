@@ -1,0 +1,46 @@
+import argparse
+import sys
+from pathlib import Path
+from .core import read, freeze, write, validate_snapshot
+from .backend import verify
+from .pipeline import run, evidence
+from .evm import replay
+
+
+def main():
+    parser = argparse.ArgumentParser(description='General contract + English specification pipeline')
+    sub = parser.add_subparsers(dest='command', required=True)
+    p = sub.add_parser('run'); p.add_argument('input'); p.add_argument('--output', required=True)
+    p.add_argument('--rounds', type=int, default=2); p.add_argument('--model'); p.add_argument('--timeout', type=int, default=300)
+    p.add_argument('--candidate'); p.add_argument('--skip-checks', action='store_true')
+    p.add_argument('--evm', action='store_true', help='Replay proposed transactions on a disposable local Anvil chain')
+    p = sub.add_parser('freeze'); p.add_argument('input'); p.add_argument('candidate'); p.add_argument('--output', required=True)
+    p = sub.add_parser('verify'); p.add_argument('snapshot'); p.add_argument('solution'); p.add_argument('--output', required=True)
+    p = sub.add_parser('evidence'); p.add_argument('snapshot'); p.add_argument('finding'); p.add_argument('--output', required=True)
+    p = sub.add_parser('replay'); p.add_argument('input'); p.add_argument('trace'); p.add_argument('--output', required=True)
+    args = parser.parse_args()
+    try:
+        if args.command == 'run':
+            run(read(args.input), args.output, args.rounds, args.model, args.timeout,
+                read(args.candidate) if args.candidate else None, args.skip_checks, evm=args.evm)
+        elif args.command == 'freeze': write(args.output, freeze(read(args.input), read(args.candidate)))
+        elif args.command == 'verify':
+            result = verify(read(args.snapshot), Path(args.solution).read_text(), args.output)
+            print(result['status']); return 0 if result['status'] == 'proved' else 1
+        elif args.command == 'replay':
+            result = replay(read(args.input), read(args.trace), args.output)
+            print(result['status']); return 0 if result['status'] == 'replayed' else 1
+        else:
+            snapshot = validate_snapshot(read(args.snapshot))
+            result = evidence(snapshot, read(args.finding), args.output)
+            write(Path(args.output)/'evidence.json', result); print(result['status'])
+            return 0 if result['status'].startswith('supported_model') else 1
+    except (ValueError, KeyError, RuntimeError, OSError) as error:
+        if args.command == 'run' and Path(args.output).exists():
+            write(Path(args.output)/'failure.json', {'status':'inconclusive','reason':str(error),
+                  'accepted':False,'creator_approval':'pending','contract_correspondence':'not_proved'})
+        parser.exit(1, 'Error: ' + str(error) + '\n')
+    return 0
+
+
+if __name__ == '__main__': sys.exit(main())

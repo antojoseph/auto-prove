@@ -1,0 +1,46 @@
+$ lake update
+info: autoprove: no previous manifest, creating one from scratch
+info: toolchain not updated; no toolchain information found
+$ lake build Solution
+✔ [2/4] Built Model (217ms)
+✖ [3/4] Building Solution (191ms)
+trace: .> LEAN_PATH=/work/.lake/build/lib/lean /opt/lean/bin/lean /work/Solution.lean -o /work/.lake/build/lib/lean/Solution.olean -i /work/.lake/build/lib/lean/Solution.ilean -c /work/.lake/build/ir/Solution.c --setup /work/.lake/build/ir/Solution.setup.json --json
+error: Solution.lean:5:161: unsolved goals
+s : State
+who amount : Nat
+h : depositAllowed s who amount
+⊢ (if depositAllowed s who amount then
+          { collateral := put s.collateral who (s.collateral who + amount), debt := s.debt, pool := s.pool + amount }
+        else s).collateral
+      who =
+    s.collateral who + amount
+warning: Solution.lean:5:201: This simp argument is unused:
+  h
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [deposit, put]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Solution.lean:5:204: This simp argument is unused:
+  put
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [deposit, h]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+error: Solution.lean:6:192: Type mismatch: After simplification, term
+  h.left
+ has type
+  True
+but is expected to have type
+  (if borrowAllowed s who amount then
+          { collateral := s.collateral, debt := put s.debt who (s.debt who + amount), pool := s.pool - amount }
+        else s).debt
+      who ≤
+    s.collateral who / 2
+warning: Solution.lean:7:8: declaration uses `sorry`
+warning: Solution.lean:8:8: declaration uses `sorry`
+warning: Solution.lean:9:8: declaration uses `sorry`
+Some required targets logged failures:
+- Solution
+error: build failed

@@ -1,0 +1,8 @@
+{
+  "id": "OwnerVault",
+  "intent": "Only the owner may withdraw deposited funds. Deposits through deposit() must not make the balance exceed the immutable cap. Please identify the assumptions needed about reentrancy, forced Ether and payout failures.",
+  "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract OwnerVault {\n    address public immutable owner;\n    uint256 public immutable cap;\n    constructor(uint256 limit) { owner = msg.sender; cap = limit; }\n    function deposit() external payable { require(address(this).balance <= cap); }\n    function withdraw(uint256 amount) external {\n        require(msg.sender == owner);\n        (bool ok,) = owner.call{value:amount}(\"\"); require(ok);\n    }\n}\n",
+  "approved_assumptions": [
+    "Analyze sequential, atomic successful/reverted transactions."
+  ]
+}

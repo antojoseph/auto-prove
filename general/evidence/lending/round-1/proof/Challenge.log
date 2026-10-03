@@ -1,0 +1,25 @@
+$ lake update
+info: autoprove: no previous manifest, creating one from scratch
+info: toolchain not updated; no toolchain information found
+$ lake build Challenge
+✖ [2/4] Building Model (187ms)
+trace: .> LEAN_PATH=/work/.lake/build/lib/lean /opt/lean/bin/lean /work/Model.lean -o /work/.lake/build/lib/lean/Model.olean -i /work/.lake/build/lib/lean/Model.ilean -c /work/.lake/build/ir/Model.c --setup /work/.lake/build/ir/Model.setup.json --json
+error: Model.lean:22:2: failed to synthesize instance of type class
+  Decidable (depositAllowed s who amount)
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+error: Model.lean:30:2: failed to synthesize instance of type class
+  Decidable (receiveAllowed s amount)
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+error: Model.lean:38:2: failed to synthesize instance of type class
+  Decidable (borrowAllowed s who amount ∧ accepts = true)
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+error: Model.lean:46:2: failed to synthesize instance of type class
+  Decidable (withdrawAllowed s who amount ∧ accepts = true)
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+Some required targets logged failures:
+- Model
+error: build failed

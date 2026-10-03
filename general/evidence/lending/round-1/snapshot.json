@@ -1,0 +1,92 @@
+{
+  "digest": "c1f8759d1fb7d994fad1d0d7345553a7204b4803ede29035d8e58bcc7841c8aa",
+  "material": {
+    "version": "general-pipeline-v1",
+    "toolchain": "4.35.0-rc2",
+    "axioms": [
+      "propext",
+      "Quot.sound",
+      "Classical.choice"
+    ],
+    "input": {
+      "id": "LendingPool",
+      "intent": "Keep lenders’ funds safe. Borrowers may borrow at most half their collateral value, and must not remove collateral while doing so would leave their debt undercollateralized. Identify contract violations and missing assumptions; do not assume away malicious borrowers.",
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract LendingPool {\n    mapping(address => uint256) public collateral;\n    mapping(address => uint256) public debt;\n    function deposit() external payable { collateral[msg.sender] += msg.value; }\n    function borrow(uint256 amount) external {\n        require(debt[msg.sender] + amount <= collateral[msg.sender] / 2);\n        debt[msg.sender] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n    function withdraw(uint256 amount) external {\n        require(amount <= collateral[msg.sender]);\n        collateral[msg.sender] -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n    receive() external payable {}\n}\n",
+      "approved_assumptions": [
+        "Analyze sequential, atomic successful/reverted transactions."
+      ]
+    },
+    "specification": {
+      "status": "supported",
+      "summary": "The borrow check enforces the half-collateral limit when a loan is made, but withdraw can later remove all collateral without checking outstanding debt. A borrower can use another depositor’s ETH to withdraw their collateral, leaving debt unbacked and the other depositor unable to withdraw their recorded balance. The contract also has no distinct lender accounting, repayment, or liquidation mechanism, so comprehensive lender safety remains unspecified.",
+      "threat_model": [
+        "Assets are the pool’s ETH, each address’s recorded collateral, and outstanding debt.",
+        "An honest, debt-free depositor expects to recover recorded collateral. The contract does not identify a separate lender role.",
+        "A malicious borrower may deposit, borrow, and withdraw using any public function. No privileged role restricts them.",
+        "Anyone may send ETH through receive(), which increases the pool balance without crediting a claim."
+      ],
+      "model_body": "structure State where\n  collateral : Nat → Nat\n  debt : Nat → Nat\n  pool : Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef empty : State :=\n  { collateral := fun _ => 0, debt := fun _ => 0, pool := 0 }\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\ndef depositAllowed (s : State) (who amount : Nat) : Prop :=\n  s.collateral who + amount ≤ maxUint ∧ s.pool + amount ≤ maxUint\n\ndef deposit (s : State) (who amount : Nat) : State :=\n  if depositAllowed s who amount then\n    { s with collateral := put s.collateral who (s.collateral who + amount), pool := s.pool + amount }\n  else s\n\ndef receiveAllowed (s : State) (amount : Nat) : Prop :=\n  s.pool + amount ≤ maxUint\n\ndef receiveEth (s : State) (amount : Nat) : State :=\n  if receiveAllowed s amount then\n    { s with pool := s.pool + amount }\n  else s\n\ndef borrowAllowed (s : State) (who amount : Nat) : Prop :=\n  s.debt who + amount ≤ s.collateral who / 2 ∧ s.debt who + amount ≤ maxUint ∧ amount ≤ s.pool\n\ndef borrow (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if borrowAllowed s who amount ∧ accepts = true then\n    { s with debt := put s.debt who (s.debt who + amount), pool := s.pool - amount }\n  else s\n\ndef withdrawAllowed (s : State) (who amount : Nat) : Prop :=\n  amount ≤ s.collateral who ∧ amount ≤ s.pool\n\ndef withdraw (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if withdrawAllowed s who amount ∧ accepts = true then\n    { s with collateral := put s.collateral who (s.collateral who - amount), pool := s.pool - amount }\n  else s\n\ndef attackStart : State := deposit (deposit empty 0 100) 1 100\n\ndef attackBorrowed : State := borrow attackStart 1 50 true\n\ndef attackPost : State := withdraw attackBorrowed 1 100 true",
+      "properties": [
+        {
+          "id": "DepositCredit",
+          "requirement": "A successful deposit increases the sender’s recorded collateral by the ETH deposited.",
+          "intent_basis": "Inferred accounting requirement from the payable deposit function and the request to protect deposited funds; this does not establish a separate lender claim.",
+          "statement": "∀ (s : State) (who amount : Nat), depositAllowed s who amount → (deposit s who amount).collateral who = s.collateral who + amount",
+          "explanation": "The modeled deposit credits the sender. Whether this credit represents borrower collateral, lender funds, or both requires creator input."
+        },
+        {
+          "id": "BorrowCap",
+          "requirement": "A successful borrow leaves the borrower’s total debt at most half their recorded collateral.",
+          "intent_basis": "Explicit creator intent.",
+          "statement": "∀ (s : State) (who amount : Nat), borrowAllowed s who amount → (borrow s who amount true).debt who ≤ (borrow s who amount true).collateral who / 2",
+          "explanation": "The borrow guard establishes this condition at the borrow step. It does not protect the condition after a later withdrawal."
+        },
+        {
+          "id": "CollateralLock",
+          "requirement": "A borrower must not successfully withdraw collateral when the remaining collateral would back less than twice their outstanding debt.",
+          "intent_basis": "Explicit creator intent.",
+          "statement": "∀ (s : State) (who amount : Nat), s.debt who ≤ s.collateral who / 2 → withdrawAllowed s who amount → (withdraw s who amount true).debt who ≤ (withdraw s who amount true).collateral who / 2",
+          "explanation": "contract_bug: withdraw checks only the recorded collateral and available ETH. This statement is false for the attack trace below; the placeholder is an intentionally rejected proof attempt."
+        },
+        {
+          "id": "OtherClaimAvailability",
+          "requirement": "A borrower’s withdrawal must not make an already payable, debt-free depositor’s recorded claim unavailable.",
+          "intent_basis": "Inferred from keeping depositors’ funds safe. Treating recorded collateral as an immediately payable claim is provisional because lender accounting is unspecified.",
+          "statement": "∀ (s : State) (borrower honest amount : Nat), borrower ≠ honest → s.debt honest = 0 → s.pool ≥ s.collateral honest → withdrawAllowed s borrower amount → (withdraw s borrower amount true).pool ≥ (withdraw s borrower amount true).collateral honest",
+          "explanation": "contract_bug under the stated claim interpretation: the malicious borrower’s withdrawal reduces pool ETH below another depositor’s recorded balance. This statement is false; the placeholder is an intentionally rejected proof attempt."
+        },
+        {
+          "id": "AttackTrace",
+          "requirement": "The collateral lock and protection of another depositor’s claim must hold through allowed actions.",
+          "intent_basis": "The collateral lock is explicit intent; claim availability is inferred from fund safety.",
+          "statement": "depositAllowed empty 0 100 ∧ depositAllowed (deposit empty 0 100) 1 100 ∧ borrowAllowed attackStart 1 50 ∧ withdrawAllowed attackBorrowed 1 100 ∧ attackBorrowed.debt 1 = 50 ∧ attackBorrowed.pool = 150 ∧ attackPost.debt 1 > attackPost.collateral 1 / 2 ∧ attackPost.pool < attackPost.collateral 0",
+          "explanation": "This is a counterexample witness, not a safety guarantee. Address 0 deposits 100 ETH; address 1 deposits 100, borrows 50, then withdraws 100. The pool ends with 50 ETH, address 1 owes 50 against zero collateral, and address 0 still has a 100 ETH recorded balance."
+        }
+      ],
+      "assumptions": [
+        "Approved: transactions are sequential and atomic; a reverted transaction leaves state unchanged.",
+        "The formal borrow ratio uses the contract’s units: both collateral and loans are ETH amounts in wei, with Solidity-style integer division.",
+        "Addresses are abstract Nat identities. The trace uses two distinct identities, 0 and 1; neither has special privileges.",
+        "The OtherClaimAvailability requirement provisionally treats a debt-free depositor’s recorded collateral as an immediately payable claim. This is an inferred security requirement, not a creator-approved definition of lender solvency."
+      ],
+      "unresolved_questions": [
+        "spec_gap / ambiguity: Is deposit() meant for borrower collateral, lender funding, or both? How are lender ownership and withdrawal claims recorded?",
+        "spec_gap / ambiguity: What does lender solvency require: immediate ETH availability, eventual recovery, or assets including collectible debt?",
+        "spec_gap: How should borrowers repay debt, and who may seize or liquidate collateral? No repayment or liquidation function exists; any liquidation policy would need fairness and valuation rules.",
+        "ambiguity: Is native ETH the only intended collateral and loan asset? The source uses ETH and has no oracle; any other asset or valuation would need oracle trust and token-behavior rules.",
+        "ambiguity: Is ETH sent through receive() an intentional donation? It creates no recorded claim.",
+        "ambiguity: No administrator exists in this contract. Should any administrator have authority over funds, valuation, or liquidation?"
+      ],
+      "execution_gaps": [
+        "model_gap: The accepts flag represents a transfer that succeeds or reverts; nested callback and reentrancy effects, gas behavior, and recipient code are not modeled. The counterexample uses no reentrancy.",
+        "model_gap: The pool balance omits forced ETH transfers and other EVM account-balance details. Arithmetic guards model relevant uint256 overflow and failed transfers at this level.",
+        "The model has no separate lender ledger because the source has none, and it does not claim to prove aggregate lender solvency.",
+        "No Lean compiler or verifier was run. The two by sorry terms are unproved attempts and must be rejected; the other proof terms are supplied for verification."
+      ]
+    },
+    "model_source": "module\npublic import Std\n@[expose] public section\nnamespace AutoSpec\nstructure State where\n  collateral : Nat → Nat\n  debt : Nat → Nat\n  pool : Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef empty : State :=\n  { collateral := fun _ => 0, debt := fun _ => 0, pool := 0 }\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\ndef depositAllowed (s : State) (who amount : Nat) : Prop :=\n  s.collateral who + amount ≤ maxUint ∧ s.pool + amount ≤ maxUint\n\ndef deposit (s : State) (who amount : Nat) : State :=\n  if depositAllowed s who amount then\n    { s with collateral := put s.collateral who (s.collateral who + amount), pool := s.pool + amount }\n  else s\n\ndef receiveAllowed (s : State) (amount : Nat) : Prop :=\n  s.pool + amount ≤ maxUint\n\ndef receiveEth (s : State) (amount : Nat) : State :=\n  if receiveAllowed s amount then\n    { s with pool := s.pool + amount }\n  else s\n\ndef borrowAllowed (s : State) (who amount : Nat) : Prop :=\n  s.debt who + amount ≤ s.collateral who / 2 ∧ s.debt who + amount ≤ maxUint ∧ amount ≤ s.pool\n\ndef borrow (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if borrowAllowed s who amount ∧ accepts = true then\n    { s with debt := put s.debt who (s.debt who + amount), pool := s.pool - amount }\n  else s\n\ndef withdrawAllowed (s : State) (who amount : Nat) : Prop :=\n  amount ≤ s.collateral who ∧ amount ≤ s.pool\n\ndef withdraw (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if withdrawAllowed s who amount ∧ accepts = true then\n    { s with collateral := put s.collateral who (s.collateral who - amount), pool := s.pool - amount }\n  else s\n\ndef attackStart : State := deposit (deposit empty 0 100) 1 100\n\ndef attackBorrowed : State := borrow attackStart 1 50 true\n\ndef attackPost : State := withdraw attackBorrowed 1 100 true\nend AutoSpec\n",
+    "challenge_source": "module\npublic import Model\npublic section\nnamespace AutoSpec\ntheorem req_DepositCredit : ∀ (s : State) (who amount : Nat), depositAllowed s who amount → (deposit s who amount).collateral who = s.collateral who + amount := by sorry\ntheorem req_BorrowCap : ∀ (s : State) (who amount : Nat), borrowAllowed s who amount → (borrow s who amount true).debt who ≤ (borrow s who amount true).collateral who / 2 := by sorry\ntheorem req_CollateralLock : ∀ (s : State) (who amount : Nat), s.debt who ≤ s.collateral who / 2 → withdrawAllowed s who amount → (withdraw s who amount true).debt who ≤ (withdraw s who amount true).collateral who / 2 := by sorry\ntheorem req_OtherClaimAvailability : ∀ (s : State) (borrower honest amount : Nat), borrower ≠ honest → s.debt honest = 0 → s.pool ≥ s.collateral honest → withdrawAllowed s borrower amount → (withdraw s borrower amount true).pool ≥ (withdraw s borrower amount true).collateral honest := by sorry\ntheorem req_AttackTrace : depositAllowed empty 0 100 ∧ depositAllowed (deposit empty 0 100) 1 100 ∧ borrowAllowed attackStart 1 50 ∧ withdrawAllowed attackBorrowed 1 100 ∧ attackBorrowed.debt 1 = 50 ∧ attackBorrowed.pool = 150 ∧ attackPost.debt 1 > attackPost.collateral 1 / 2 ∧ attackPost.pool < attackPost.collateral 0 := by sorry\nend AutoSpec\n"
+  },
+  "creator_approval": "pending",
+  "contract_correspondence": "not_proved"
+}

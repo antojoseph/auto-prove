@@ -1,0 +1,40 @@
+{
+  "status": "replayed",
+  "input_digest": "d375ec30d149b5943d9653dc2b7790b77c9332bc4f686224603f79e28de796c0",
+  "trace_digest": "c6f0e63267d7a472ba18fd532e9c78bf4a64a8b900e8e24885509fb990de47ad",
+  "scope": "concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof",
+  "intent_connection": "fallible interpretation; creator review pending",
+  "transactions": [
+    {
+      "action": {
+        "account": 2,
+        "function": "",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x1f50b80a01c5feb329bb3f20783767d953d806a1b0955701af8f8f9d8a7079d5",
+      "gas_used": 21055
+    }
+  ],
+  "observations": [
+    {
+      "label": "direct sender collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:2"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "label": "direct sender debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:2"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "contract_address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "contract_balance_wei": 100
+}

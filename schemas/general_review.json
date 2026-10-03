@@ -1,0 +1,162 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_digest": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "spec_gap",
+              "contract_bug",
+              "model_gap",
+              "ambiguity"
+            ]
+          },
+          "property_id": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "string"
+          },
+          "evidence_kind": {
+            "type": "string",
+            "enum": [
+              "model_counterexample",
+              "model_observation",
+              "reasoning_only"
+            ]
+          },
+          "transaction_sequence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "observation_statement": {
+            "type": "string"
+          },
+          "proof": {
+            "type": "string"
+          },
+          "suggested_change": {
+            "type": "string"
+          },
+          "evm_trace": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "contract_name": {
+                "type": "string"
+              },
+              "constructor_arguments": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "actions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "account": {
+                      "type": "integer"
+                    },
+                    "function": {
+                      "type": "string"
+                    },
+                    "arguments": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "value_wei": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "account",
+                    "function",
+                    "arguments",
+                    "value_wei"
+                  ]
+                }
+              },
+              "observations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "function": {
+                      "type": "string"
+                    },
+                    "arguments": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "function",
+                    "arguments"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "contract_name",
+              "constructor_arguments",
+              "actions",
+              "observations"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "property_id",
+          "reasoning",
+          "evidence_kind",
+          "transaction_sequence",
+          "observation_statement",
+          "proof",
+          "suggested_change",
+          "evm_trace"
+        ]
+      }
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "candidate_digest",
+    "summary",
+    "findings",
+    "unresolved_questions"
+  ]
+}

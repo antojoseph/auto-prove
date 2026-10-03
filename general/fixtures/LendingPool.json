@@ -1,0 +1,8 @@
+{
+  "id": "LendingPool",
+  "intent": "Keep lenders’ funds safe. Borrowers may borrow at most half their collateral value, and must not remove collateral while doing so would leave their debt undercollateralized. Identify contract violations and missing assumptions; do not assume away malicious borrowers.",
+  "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract LendingPool {\n    mapping(address => uint256) public collateral;\n    mapping(address => uint256) public debt;\n    function deposit() external payable { collateral[msg.sender] += msg.value; }\n    function borrow(uint256 amount) external {\n        require(debt[msg.sender] + amount <= collateral[msg.sender] / 2);\n        debt[msg.sender] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n    function withdraw(uint256 amount) external {\n        require(amount <= collateral[msg.sender]);\n        collateral[msg.sender] -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n    receive() external payable {}\n}\n",
+  "approved_assumptions": [
+    "Analyze sequential, atomic successful/reverted transactions."
+  ]
+}

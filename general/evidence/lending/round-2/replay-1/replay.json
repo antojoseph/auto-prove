@@ -1,0 +1,77 @@
+{
+  "status": "replayed",
+  "input_digest": "d375ec30d149b5943d9653dc2b7790b77c9332bc4f686224603f79e28de796c0",
+  "trace_digest": "0a0617f937554d8885ea3fc0ec51c0b5c30f64f0af7a619bc9ca0740ba5dccdc",
+  "scope": "concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof",
+  "intent_connection": "fallible interpretation; creator review pending",
+  "transactions": [
+    {
+      "action": {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x22a049425d6f32455e035ca018ea7b4499bef1e1eb2d0ad38f0a0c8f76742f20",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0xf008c2d86e82fe9fba55dae37e57663e830bc3757e198d2ec8dfab1fd80a2fa5",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "borrow(uint256)",
+        "arguments": [
+          "50"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0x86c946535bec6afadfda98b057207684d493bc8bd402511f6708585ea3e5f917",
+      "gas_used": 53912
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "100"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0xdb1566e04f37b75743343e380c3460ec9d3a4bfe5933b9d61b11f55448348d7b",
+      "gas_used": 29395
+    }
+  ],
+  "observations": [
+    {
+      "label": "borrower debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000032"
+    },
+    {
+      "label": "borrower collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "contract_address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "contract_balance_wei": 50
+}

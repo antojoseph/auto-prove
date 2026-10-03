@@ -1,0 +1,108 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "name": "valid",
+      "expected": "proved",
+      "result": {
+        "status": "proved",
+        "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+        "kernel_checked": true,
+        "target_matched": true,
+        "independent_kernels": [
+          "nanoda",
+          "con-ron"
+        ],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved"
+      }
+    },
+    {
+      "name": "sorry",
+      "expected": "rejected",
+      "result": {
+        "status": "rejected",
+        "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    },
+    {
+      "name": "wrong-target",
+      "expected": "rejected",
+      "result": {
+        "status": "rejected",
+        "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    },
+    {
+      "name": "custom-axiom",
+      "expected": "rejected",
+      "result": {
+        "status": "rejected",
+        "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    },
+    {
+      "name": "equivalent-body-replacement",
+      "expected": "rejected",
+      "result": {
+        "status": "rejected",
+        "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    },
+    {
+      "name": "changed-definition",
+      "expected": "rejected",
+      "result": {
+        "status": "rejected",
+        "target_digest": "3f796caa92fca4333c0e3b66407a7111ae327cd3bf12ba2d5a463d3ea475a68a",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    },
+    {
+      "name": "counterexample",
+      "expected": "proved",
+      "result": {
+        "status": "proved",
+        "target_digest": "6760b2b622a0ec143265b20f8e71f9484276e41ca2d1575579b8035f9a30778d",
+        "kernel_checked": true,
+        "target_matched": true,
+        "independent_kernels": [
+          "nanoda",
+          "con-ron"
+        ],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved"
+      }
+    }
+  ],
+  "provenance": "All results use definition_names=[]; equivalent-body replacement re-run after correcting its expected verdict. Superseded raw runs remain under runs/reproduced-general-gates-*."
+}

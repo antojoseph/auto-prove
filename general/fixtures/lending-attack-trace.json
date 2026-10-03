@@ -1,0 +1,50 @@
+{
+  "contract_name": "LendingPool",
+  "constructor_arguments": [],
+  "actions": [
+    {
+      "account": 1,
+      "function": "",
+      "arguments": [],
+      "value_wei": "100"
+    },
+    {
+      "account": 0,
+      "function": "deposit()",
+      "arguments": [],
+      "value_wei": "100"
+    },
+    {
+      "account": 0,
+      "function": "borrow(uint256)",
+      "arguments": [
+        "50"
+      ],
+      "value_wei": "0"
+    },
+    {
+      "account": 0,
+      "function": "withdraw(uint256)",
+      "arguments": [
+        "100"
+      ],
+      "value_wei": "0"
+    }
+  ],
+  "observations": [
+    {
+      "label": "remaining collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "label": "outstanding debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    }
+  ]
+}

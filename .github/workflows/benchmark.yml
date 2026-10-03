@@ -1,0 +1,49 @@
+name: Internal specification pipeline benchmark
+on:
+  workflow_dispatch:
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      AUTO_PROVE_MODEL: ${{ vars.AUTO_PROVE_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the pinned model runner
+        run: npm install -g @openai/codex@0.157.0
+      - name: Configure a dedicated benchmark model account
+        env:
+          BENCHMARK_AUTH_JSON: ${{ secrets.BENCHMARK_AUTH_JSON }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          value = os.environ.get('BENCHMARK_AUTH_JSON', '')
+          if not value:
+              raise SystemExit('Configure a dedicated benchmark account before dispatch; no score was produced.')
+          json.loads(value)
+          target = Path.home() / '.codex' / 'auth.json'
+          target.parent.mkdir(mode=0o700, exist_ok=True)
+          target.write_text(value)
+          target.chmod(0o600)
+          PY
+      - name: Setup
+        run: bash .yukon/setup.sh
+      - name: Benchmark
+        run: bash .yukon/run.sh
+      - name: Upload internal proxy score
+        uses: actions/upload-artifact@v4
+        with:
+          name: score
+          path: .yukon/score.json
+          if-no-files-found: error
+      - name: Remove benchmark credentials
+        if: always()
+        run: rm -f "$HOME/.codex/auth.json"

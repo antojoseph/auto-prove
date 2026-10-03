@@ -1,0 +1,210 @@
+{
+  "version": "general-pipeline-v1",
+  "input": {
+    "id": "OwnerVault",
+    "intent": "Only the owner may withdraw deposited funds. Deposits through deposit() must not make the balance exceed the immutable cap. Please identify the assumptions needed about reentrancy, forced Ether and payout failures.",
+    "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract OwnerVault {\n    address public immutable owner;\n    uint256 public immutable cap;\n    constructor(uint256 limit) { owner = msg.sender; cap = limit; }\n    function deposit() external payable { require(address(this).balance <= cap); }\n    function withdraw(uint256 amount) external {\n        require(msg.sender == owner);\n        (bool ok,) = owner.call{value:amount}(\"\"); require(ok);\n    }\n}\n",
+    "approved_assumptions": [
+      "Analyze sequential, atomic successful/reverted transactions."
+    ]
+  },
+  "rounds": [
+    {
+      "number": 1,
+      "candidate": {
+        "status": "supported",
+        "summary": "Initial specification for OwnerVault. The model covers owner-only payouts, the deposit-specific cap, forced Ether, and failed payouts. No contract_bug against the two stated requirements is identified. A global balance cap and a limit on payouts during reentrancy require creator clarification. Proof terms are supplied but have not been run through Lean.",
+        "threat_model": [
+          "Actors: the deploying owner, arbitrary depositors and non-owner callers, contracts that can force Ether into the vault, and an owner contract whose callback can reenter or revert.",
+          "Assets: the vault's Ether, the owner-only withdrawal authority, the immutable cap, and the availability of deposits and withdrawals.",
+          "A non-owner may try to withdraw; a depositor may try to exceed the cap; forced Ether may raise the balance above the cap or block later deposits.",
+          "An owner contract can reenter during payout and make additional owner-authorized withdrawals. A failed payout reverts the withdrawal."
+        ],
+        "model_body": "structure Vault where\n  owner : Nat\n  cap : Nat\n  balance : Nat\n\nstructure Outcome where\n  next : Vault\n  success : Bool\n  paidTo : Nat\n  paid : Nat\n\ninductive Action where\n  | deposit (caller value : Nat)\n  | withdraw (caller value : Nat) (payoutOk : Bool)\n  | forced (value : Nat)\n\ndef init (creator limit prefunded : Nat) : Vault :=\n  { owner := creator, cap := limit, balance := prefunded }\n\ndef deposit (s : Vault) (value : Nat) : Outcome :=\n  if s.balance + value ≤ s.cap then\n    { next := { s with balance := s.balance + value },\n      success := true, paidTo := s.owner, paid := 0 }\n  else\n    { next := s, success := false, paidTo := s.owner, paid := 0 }\n\ndef forceEther (s : Vault) (value : Nat) : Outcome :=\n  { next := { s with balance := s.balance + value },\n    success := true, paidTo := s.owner, paid := 0 }\n\ndef withdraw (s : Vault) (caller value : Nat) (payoutOk : Bool) : Outcome :=\n  if caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true then\n    { next := { s with balance := s.balance - value },\n      success := true, paidTo := s.owner, paid := value }\n  else\n    { next := s, success := false, paidTo := s.owner, paid := 0 }\n\ndef step (s : Vault) (a : Action) : Outcome :=\n  match a with\n  | .deposit _ value => deposit s value\n  | .withdraw caller value payoutOk => withdraw s caller value payoutOk\n  | .forced value => forceEther s value",
+        "properties": [
+          {
+            "id": "InitialAuthority",
+            "requirement": "The deploying caller becomes owner, and the constructor limit becomes the cap.",
+            "intent_basis": "Inferred from the contract constructor and the intent's references to the owner and immutable cap.",
+            "statement": "∀ (creator limit prefunded : Nat), (init creator limit prefunded).owner = creator ∧ (init creator limit prefunded).cap = limit",
+            "explanation": "Initial Ether may be prefunded; it does not change who owns the vault or the chosen cap.",
+            "proof": "by\n  intro creator limit prefunded\n  simp [init]"
+          },
+          {
+            "id": "ImmutableAuthorityAndCap",
+            "requirement": "Deposits, withdrawals, and forced Ether do not change the owner or cap.",
+            "intent_basis": "Inferred from the stated immutable cap and the contract's immutable owner and cap fields.",
+            "statement": "∀ (s : Vault) (a : Action), (step s a).next.owner = s.owner ∧ (step s a).next.cap = s.cap",
+            "explanation": "Every modeled action preserves both configuration fields.",
+            "proof": "by\n  intro s a\n  cases a with\n  | deposit caller value =>\n      by_cases h : s.balance + value ≤ s.cap\n      · simp [step, deposit, h]\n      · simp [step, deposit, h]\n  | withdraw caller value payoutOk =>\n      by_cases h : caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true\n      · simp [step, withdraw, h]\n      · simp [step, withdraw, h]\n  | forced value =>\n      simp [step, forceEther]"
+          },
+          {
+            "id": "OwnerOnlyWithdrawal",
+            "requirement": "A non-owner withdrawal attempt cannot succeed, transfer Ether, or change the vault.",
+            "intent_basis": "Explicit: only the owner may withdraw deposited funds.",
+            "statement": "∀ (s : Vault) (caller value : Nat) (payoutOk : Bool), caller ≠ s.owner → (withdraw s caller value payoutOk).success = false ∧ (withdraw s caller value payoutOk).next = s ∧ (withdraw s caller value payoutOk).paid = 0",
+            "explanation": "The caller check precedes the external payout call.",
+            "proof": "by\n  intro s caller value payoutOk h\n  have hguard : ¬ (caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true) := by\n    intro hs\n    exact h hs.1\n  simp [withdraw, hguard]"
+          },
+          {
+            "id": "OwnerIsRecipient",
+            "requirement": "Every positive withdrawal payout goes to the owner and arises from an owner call.",
+            "intent_basis": "Explicit owner-only withdrawal intent, together with the contract's payout destination.",
+            "statement": "∀ (s : Vault) (caller value : Nat) (payoutOk : Bool), (withdraw s caller value payoutOk).paid > 0 → caller = s.owner ∧ (withdraw s caller value payoutOk).paidTo = s.owner",
+            "explanation": "Reentrant calls are assessed separately using their actual immediate caller.",
+            "proof": "by\n  intro s caller value payoutOk h\n  by_cases hg : caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true\n  · constructor\n    · exact hg.1\n    · simp [withdraw, hg]\n  · simp [withdraw, hg] at h"
+          },
+          {
+            "id": "DepositCap",
+            "requirement": "A successful deposit() leaves the balance no greater than the cap.",
+            "intent_basis": "Explicit: deposits through deposit() must not make the balance exceed the immutable cap.",
+            "statement": "∀ (s : Vault) (value : Nat), (deposit s value).success = true → (deposit s value).next.balance ≤ s.cap",
+            "explanation": "The guard checks the balance after adding the incoming value.",
+            "proof": "by\n  intro s value h\n  by_cases hc : s.balance + value ≤ s.cap\n  · simpa [deposit, hc] using hc\n  · simp [deposit, hc] at h"
+          },
+          {
+            "id": "FailedPayoutRollback",
+            "requirement": "If the owner payout call fails, the withdrawal reverts without a committed payment or balance change.",
+            "intent_basis": "Inferred from the request to address payout failures, require(ok), and the approved atomic transaction assumption.",
+            "statement": "∀ (s : Vault) (caller value : Nat), (withdraw s caller value false).success = false ∧ (withdraw s caller value false).next = s ∧ (withdraw s caller value false).paid = 0",
+            "explanation": "The contract requires a successful low-level call; failure reverts.",
+            "proof": "by\n  intro s caller value\n  simp [withdraw]"
+          }
+        ],
+        "assumptions": [
+          "Approved: transactions are sequential and atomic; a revert rolls back Ether transfers and nested effects.",
+          "Each vault invocation uses its actual EVM msg.sender. No nonreentrancy assumption is made.",
+          "payoutOk represents the external CALL result; success is not assumed. Withdrawal availability would require sufficient balance and an owner address that accepts the payment.",
+          "Prefunding and forced Ether are allowed. No assumption that the vault's total balance always stays below the cap is made.",
+          "Nat models Ether amounts and address equality; valid EVM ranges are assumed when relating arithmetic to Solidity."
+        ],
+        "unresolved_questions": [
+          "Should the cap constrain the total balance, including prefunding and forced Ether, or only successful deposit() calls?",
+          "If the owner is a contract, must one top-level withdraw(amount) be limited to a single payout of amount despite reentrant owner calls?",
+          "Is withdrawal availability required when the owner contract rejects Ether or exhausts gas? The current contract can revert in those cases."
+        ],
+        "execution_gaps": [
+          "Lean proofs were not compiled or checked in this response; no verifier or independent adversarial review result was supplied.",
+          "The model treats a withdrawal as one committed payout and abstracts the owner callback into payoutOk. It does not model call-stack interleaving, gas, call depth, or nested rollback in detail. This is a model_gap for whole-transaction reentrancy claims.",
+          "Forced Ether and prefunding are modeled, so DepositCap does not imply a global balance invariant. Treating such an invariant as intended would require creator input; it is not currently a demonstrated contract_bug.",
+          "The contract keeps no per-depositor accounting. The model treats deposited funds as part of the vault's single Ether balance.",
+          "Nat omits uint256 overflow and finite address width; no overflow-sensitive claim is proved."
+        ]
+      },
+      "findings": [
+        {
+          "finding": {
+            "kind": "model_gap",
+            "property_id": "",
+            "reasoning": "The source uses `owner.call`, which can execute an owner contract's receive hook. A one-shot hook can reenter `withdraw(10)` during an outer `withdraw(0)`. The outer transaction then pays 10 wei and leaves a 20-wei vault with 10 wei, while the model records no payout and no balance change for `withdraw(0)`. Both calls are made by the owner contract, so this does not demonstrate a violation of owner-only authority. It does show why the model cannot resolve the requested reentrancy assumption or any limit on the aggregate payout of one top-level call. The Lean observation establishes only the model result; the source-level sequence has not been replayed.",
+            "evidence_kind": "model_observation",
+            "transaction_sequence": [
+              "An owner contract with a one-shot receive hook deploys OwnerVault with cap 20 wei.",
+              "A depositor calls deposit() with 20 wei.",
+              "The owner contract calls withdraw(0). Its receive hook calls withdraw(10) once, then returns.",
+              "If both calls succeed, the vault ends with 10 wei and the owner contract receives 10 wei."
+            ],
+            "observation_statement": "(withdraw (init 1 20 20) 1 0 true).next.balance = 20 ∧ (withdraw (init 1 20 20) 1 0 true).paid = 0",
+            "proof": "by decide",
+            "suggested_change": "Decide whether `withdraw(amount)` limits the aggregate payout of its top-level transaction. Model nested owner callbacks and rollback when making transaction-wide claims, or explicitly restrict the single-step outcome to an immediate call under a stated callback assumption.",
+            "evm_trace": null
+          },
+          "check": {
+            "status": "supported_model_observation",
+            "target_digest": "c0cbc2b3cdb01d96bfc83fd00aee3502cae56c84d5095cc1621994e873526841",
+            "kernel_checked": true,
+            "target_matched": true,
+            "independent_kernels": [
+              "nanoda",
+              "con-ron"
+            ],
+            "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+            "contract_correspondence": "not_proved",
+            "evidence_scope": "generated Lean model; Solidity/EVM transaction NOT replayed",
+            "intent_connection": "fallible adversary interpretation; creator review pending",
+            "proof_format": "term"
+          },
+          "evm_check": {
+            "status": "not_run"
+          },
+          "superseded_check": {
+            "status": "rejected",
+            "target_digest": "c0cbc2b3cdb01d96bfc83fd00aee3502cae56c84d5095cc1621994e873526841",
+            "kernel_checked": false,
+            "target_matched": false,
+            "independent_kernels": [],
+            "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+            "contract_correspondence": "not_proved",
+            "reason": "Target, axiom policy or kernel check rejected the proof",
+            "evidence_scope": "generated Lean model; Solidity/EVM transaction NOT replayed",
+            "intent_connection": "fallible adversary interpretation; creator review pending"
+          }
+        }
+      ],
+      "snapshot_digest": "a1b263ad9aa3c06dd7d27f3b32ecf826d372bc60c56f0c6595fa92eb62af6674",
+      "property_changes": [],
+      "proof_check": {
+        "status": "proved",
+        "target_digest": "a1b263ad9aa3c06dd7d27f3b32ecf826d372bc60c56f0c6595fa92eb62af6674",
+        "kernel_checked": true,
+        "target_matched": true,
+        "independent_kernels": [
+          "nanoda",
+          "con-ron"
+        ],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved"
+      },
+      "review": {
+        "candidate_digest": "a1b263ad9aa3c06dd7d27f3b32ecf826d372bc60c56f0c6595fa92eb62af6674",
+        "summary": "The direct owner check and deposit cap match the stated intent. The model omits state changes during an owner callback, so it cannot establish a transaction-wide reentrancy claim. The supplied target proofs remain unverified: the challenge uses `sorry` and the comparator rejected the proof artifact.",
+        "findings": [
+          {
+            "kind": "model_gap",
+            "property_id": "",
+            "reasoning": "The source uses `owner.call`, which can execute an owner contract's receive hook. A one-shot hook can reenter `withdraw(10)` during an outer `withdraw(0)`. The outer transaction then pays 10 wei and leaves a 20-wei vault with 10 wei, while the model records no payout and no balance change for `withdraw(0)`. Both calls are made by the owner contract, so this does not demonstrate a violation of owner-only authority. It does show why the model cannot resolve the requested reentrancy assumption or any limit on the aggregate payout of one top-level call. The Lean observation establishes only the model result; the source-level sequence has not been replayed.",
+            "evidence_kind": "model_observation",
+            "transaction_sequence": [
+              "An owner contract with a one-shot receive hook deploys OwnerVault with cap 20 wei.",
+              "A depositor calls deposit() with 20 wei.",
+              "The owner contract calls withdraw(0). Its receive hook calls withdraw(10) once, then returns.",
+              "If both calls succeed, the vault ends with 10 wei and the owner contract receives 10 wei."
+            ],
+            "observation_statement": "(withdraw (init 1 20 20) 1 0 true).next.balance = 20 ∧ (withdraw (init 1 20 20) 1 0 true).paid = 0",
+            "proof": "by decide",
+            "suggested_change": "Decide whether `withdraw(amount)` limits the aggregate payout of its top-level transaction. Model nested owner callbacks and rollback when making transaction-wide claims, or explicitly restrict the single-step outcome to an immediate call under a stated callback assumption.",
+            "evm_trace": null
+          }
+        ],
+        "unresolved_questions": [
+          "Should one top-level withdraw(amount) be limited to an aggregate payout of amount when the owner contract reenters?",
+          "Does the creator require a global cap despite prefunding or forced Ether, or only the stated deposit() guard?",
+          "Is withdrawal availability required when the owner rejects the payout? The source reverts in that case.",
+          "How will the rejected comparator result be resolved before treating the target theorems as verified?"
+        ]
+      },
+      "earlier_attack_replays": [],
+      "status": "needs_review",
+      "superseded_proof_check": {
+        "status": "rejected",
+        "target_digest": "a1b263ad9aa3c06dd7d27f3b32ecf826d372bc60c56f0c6595fa92eb62af6674",
+        "kernel_checked": false,
+        "target_matched": false,
+        "independent_kernels": [],
+        "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+        "contract_correspondence": "not_proved",
+        "reason": "Target, axiom policy or kernel check rejected the proof"
+      }
+    }
+  ],
+  "mode": "live_agents_with_protected_independent_recheck",
+  "model": "gpt-6-sol",
+  "creator_approval": "pending",
+  "contract_correspondence": "not_proved",
+  "accepted": false,
+  "stopping_rule": "bounded rounds or provisional convergence; no automatic certification",
+  "verification_policy": "No editable definition holes. Fresh rechecks supersede the earlier live process config; original agent responses and proof attempts are unchanged.",
+  "replay_provenance": "These EVM traces were generated by independent live adversary roles and replayed unchanged by the generic harness.",
+  "execution_status": "inconclusive_revision_timeout",
+  "execution_note": "Initial specification and six proof targets were independently checked. The requested second-round proposer call exceeded its 360-second deadline; no revised candidate was returned. This is a partial semantic review, not successful convergence."
+}

@@ -1,0 +1,10 @@
+{
+  "status": "rejected",
+  "target_digest": "b75da87cb25b2513faa7ff474085918b429310247bd4fe142cedb227b148cd1a",
+  "kernel_checked": false,
+  "target_matched": false,
+  "independent_kernels": [],
+  "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+  "contract_correspondence": "not_proved",
+  "reason": "Target, axiom policy or kernel check rejected the proof"
+}
