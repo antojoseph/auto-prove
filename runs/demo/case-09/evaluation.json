@@ -1,0 +1,171 @@
+{
+  "candidate_name": "proposal-09",
+  "findings": [
+    {
+      "requirement_id": "R7",
+      "explanation": "The beneficiary_only guarantee scope omits arbitrary nonbeneficiary callers. The trace funds the escrow legitimately and has eve trigger release at 10; R7 requires the guarantees to cover this sequence, while the candidate's scope excludes eve's call even though caller=anyone authorizes it. This is a missing quantified guarantee, not evidence that eve's transaction actually pays incorrectly or that a malicious caller alone causes a defect. The prose mapping's arbitrary-caller claim cannot broaden the formal scope.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ],
+      "replay": {
+        "mismatch": true,
+        "requirements": [
+          "R2",
+          "R7"
+        ],
+        "steps": [
+          {
+            "index": 0,
+            "action": {
+              "kind": "fund",
+              "caller": "alice",
+              "time": 1,
+              "amount": 100,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 1,
+            "action": {
+              "kind": "release",
+              "caller": "eve",
+              "time": 10,
+              "amount": 0,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 0,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "candidate": {
+              "outcome": "outside_claim_domain",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": [
+              "R2",
+              "R7"
+            ]
+          }
+        ]
+      },
+      "validated": true
+    }
+  ],
+  "bounded_check": {
+    "depth": 4,
+    "transitions_checked": 1376,
+    "witnesses": {
+      "R7": [
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 0,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ],
+      "R2": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    },
+    "status": "bounded_mismatch_found"
+  },
+  "validated_findings": 1,
+  "unsupported_findings": 0,
+  "detected_requirements": [
+    "R7"
+  ],
+  "missed_bounded_requirements": [
+    "R2"
+  ],
+  "extra_assumptions": [],
+  "missing_assumptions": [],
+  "unresolved_questions": [
+    "R7: The added beneficiary-only scope assumption requires creator review and conflicts with the present arbitrary-caller intent. The supplied policy does not establish what guarantees, if any, hold outside that scope; no concrete incorrect payout is asserted for the excluded trace."
+  ],
+  "accepted": false,
+  "disposition": "mismatch_found",
+  "human_approval": "pending",
+  "limitation": "Replay validates witnesses against a hand-authored reference interpretation. It does not certify English-to-Lean fidelity or Solidity/EVM correspondence.",
+  "lean": {
+    "status": "checked",
+    "kernel_checked": true,
+    "axioms": [
+      "propext"
+    ],
+    "validated_witnesses": 1,
+    "reference_equivalence_proved": false,
+    "scope": "Abstract transition model and generated witness/target claims only; human semantic review and EVM correspondence remain separate."
+  }
+}

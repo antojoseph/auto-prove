@@ -1,0 +1,27 @@
+{
+  "candidate_name": "proposal-02",
+  "findings": [
+    {
+      "requirement_id": "R2",
+      "explanation": "The formal policy restricts release callers to the beneficiary. After alice funds 100, eve's release at deadline 10 with a successful token transfer must be permitted by R2, but this policy rejects it because eve is not bob. This is an exclusion of an intended successful transaction, independent of whether eve is honest. The prose mapping's claim of authorization for every address does not repair the policy restriction.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "Restricting release to bob contradicts open release authorization in R2."
+}

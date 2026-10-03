@@ -1,0 +1,27 @@
+{
+  "candidate_name": "proposal-05",
+  "findings": [
+    {
+      "requirement_id": "R2",
+      "explanation": "The always unlock rule permits release before deadline 10. After alice funds 100 at time 1, bob can successfully release at 9 under the policy, whereas R2 requires that transaction to fail. This defect occurs even for the beneficiary caller.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 9,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "The policy allows premature release."
+}

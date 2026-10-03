@@ -1,0 +1,14 @@
+.tools/
+contracts/out/
+contracts/cache/
+__pycache__/
+*.pyc
+runs/live-*/
+*.olean
+*.ilean
+**/.lake/
+.DS_Store
+**/events.jsonl
+**/stderr.log
+runs/reproduced-*/
+runs/demo/live-validation.html

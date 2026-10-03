@@ -1,0 +1,29 @@
+{
+  "candidate_name": "proposal-09",
+  "findings": [
+    {
+      "requirement_id": "R7",
+      "explanation": "The beneficiary_only guarantee scope omits arbitrary nonbeneficiary callers. The trace funds the escrow legitimately and has eve trigger release at 10; R7 requires the guarantees to cover this sequence, while the candidate's scope excludes eve's call even though caller=anyone authorizes it. This is a missing quantified guarantee, not evidence that eve's transaction actually pays incorrectly or that a malicious caller alone causes a defect. The prose mapping's arbitrary-caller claim cannot broaden the formal scope.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [
+    "R7: The added beneficiary-only scope assumption requires creator review and conflicts with the present arbitrary-caller intent. The supplied policy does not establish what guarantees, if any, hold outside that scope; no concrete incorrect payout is asserted for the excluded trace."
+  ],
+  "summary": "Guarantees have been narrowed to beneficiary callers; nonbeneficiary executions lack the required coverage."
+}

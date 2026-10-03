@@ -1,0 +1,34 @@
+{
+  "candidate_name": "proposal-06",
+  "findings": [
+    {
+      "requirement_id": "R6",
+      "explanation": "After funding 100 and an unsolicited donation of 100, escrow balance is 200. The all_balance rule pays all 200 to bob at release, instead of paying the committed 100 and leaving the donated 100 locked. This increases entitlement in violation of R6; the same payout also violates R3's committed-amount rule and R4's cumulative cap of 100. These are consequences of the single all-balance mismatch.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "donate",
+          "caller": "eve",
+          "time": 2,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "Donations are paid out, increasing entitlement and exceeding the committed cap."
+}

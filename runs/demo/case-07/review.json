@@ -1,0 +1,41 @@
+{
+  "candidate_name": "proposal-07",
+  "findings": [
+    {
+      "requirement_id": "R4",
+      "explanation": "The per_call repeat rule permits another committed payout after a successful release. Funding 100 plus a donation of 100 supplies enough real balance for two payouts of 100, avoiding an impossible insufficient-balance execution. Releases at 10 and 11 both succeed under the policy, paying 200 in total and recording two successful releases. R4 permits only one success and at most 100 paid out. The second payout also unlocks donated surplus contrary to R6.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "donate",
+          "caller": "eve",
+          "time": 2,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 11,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "Repeated releases violate the one-success invariant and payout cap."
+}

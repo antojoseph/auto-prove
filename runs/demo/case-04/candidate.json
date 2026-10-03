@@ -1,0 +1,49 @@
+{
+  "name": "proposal-04",
+  "policy": {
+    "caller": "anyone",
+    "recipient": "beneficiary",
+    "unlock": "after",
+    "payout": "committed",
+    "repeat": "once",
+    "failure": "rollback",
+    "scope": "arbitrary_callers"
+  },
+  "requirement_mapping": [
+    {
+      "requirement_id": "R1",
+      "formal_meaning": "Deployment requires committed amount A > 0, a beneficiary B distinct from the zero address, and a fixed deadline D strictly greater than the deployment chain timestamp. For a single escrow, a successful funding transition is authorized only for the depositor, transfers exactly A integer token base units, and can occur at most once. Funding is allowed before, at, or after D: there is no funding deadline guard. A failed funding attempt does not count as successful funding. No transition changes A or B; unsolicited donations do not constitute the depositor's funding transition. Release is permitted only after successful funding. These deployment and funding-time rules are the explicit version-2 prototype design choices."
+    },
+    {
+      "requirement_id": "R2",
+      "formal_meaning": "For every caller and reachable state at chain timestamp t, release fails when t < D, where D is the fixed deployment deadline. When t >= D, the escrow is funded, and no release has succeeded, every address is authorized to trigger release, subject to token-transfer success. Equality t = D is included."
+    },
+    {
+      "requirement_id": "R3",
+      "formal_meaning": "Every successful release transfers exactly the full committed amount A from escrow to the immutable beneficiary B. The recipient does not depend on the triggering caller, and invoking release does not change ownership or entitlement."
+    },
+    {
+      "requirement_id": "R4",
+      "formal_meaning": "For every finite transaction sequence reachable from deployment, including arbitrary interleavings of funding attempts, donations, failed releases, and calls by arbitrary addresses, the cumulative amount paid out by escrow is at most A and the number of successful releases is at most one. A successful release permanently prevents any subsequent successful release."
+    },
+    {
+      "requirement_id": "R5",
+      "formal_meaning": "If a release token transfer fails, the complete release transaction reverts: escrow and token state equal their pre-transaction values, cumulative payout and successful-release count are unchanged, and the release right is not consumed. From a funded, unlocked, unreleased state, a failed transfer preserves eligibility for a later release by any address when that later transfer succeeds."
+    },
+    {
+      "requirement_id": "R6",
+      "formal_meaning": "Unsolicited donations may increase escrow's token balance but never change A or increase beneficiary entitlement. A successful release pays A rather than the full balance; any donated surplus remains locked in the v1 escrow, with no surplus withdrawal transition. Donations cannot enable repeat payouts."
+    },
+    {
+      "requirement_id": "R7",
+      "formal_meaning": "All transition conditions and sequence invariants quantify over arbitrary caller addresses, including malicious callers and callers distinct from both depositor and beneficiary. No honesty assumption or caller-equals-beneficiary assumption restricts the guarantees. The authorized depositor restriction applies to funding, while release authorization is open to every address."
+    }
+  ],
+  "assumptions": [
+    "The chosen ERC20 token preserves balances and transfers exactly the requested integer amount. Fee-on-transfer and rebasing tokens are outside this model.",
+    "A failed transaction rolls back token and escrow state atomically.",
+    "Time is the chain timestamp and is nondecreasing across transactions. The deadline is fixed at deployment.",
+    "The Lean transition model is sequential and abstracts away callbacks, gas, compiler behavior and the EVM. Solidity callback behavior requires separate executable tests."
+  ],
+  "unresolved_questions": []
+}

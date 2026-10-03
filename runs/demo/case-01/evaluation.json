@@ -1,0 +1,31 @@
+{
+  "candidate_name": "proposal-01",
+  "findings": [],
+  "bounded_check": {
+    "depth": 4,
+    "transitions_checked": 1304,
+    "witnesses": {},
+    "status": "no_mismatch_in_bounded_search"
+  },
+  "validated_findings": 0,
+  "unsupported_findings": 0,
+  "detected_requirements": [],
+  "missed_bounded_requirements": [],
+  "extra_assumptions": [],
+  "missing_assumptions": [],
+  "unresolved_questions": [],
+  "accepted": false,
+  "disposition": "awaiting_creator_review",
+  "human_approval": "pending",
+  "limitation": "Replay validates witnesses against a hand-authored reference interpretation. It does not certify English-to-Lean fidelity or Solidity/EVM correspondence.",
+  "lean": {
+    "status": "checked",
+    "kernel_checked": true,
+    "axioms": [
+      "propext"
+    ],
+    "validated_witnesses": 0,
+    "reference_equivalence_proved": true,
+    "scope": "Abstract transition model and generated witness/target claims only; human semantic review and EVM correspondence remain separate."
+  }
+}

@@ -1,0 +1,7 @@
+'Escrow.payout_cap_for_every_trace' depends on axioms: [propext]
+'Escrow.only_beneficiary_for_every_trace' depends on axioms: [propext]
+'Escrow.before_deadline_reverts' depends on axioms: [propext]
+'Escrow.failed_transfer_keeps_state' depends on axioms: [propext]
+'Escrow.repeat_release_reverts' depends on axioms: [propext]
+
+'Candidate.matchesReference' does not depend on any axioms

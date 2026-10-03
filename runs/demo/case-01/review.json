@@ -1,0 +1,6 @@
+{
+  "candidate_name": "proposal-01",
+  "findings": [],
+  "unresolved_questions": [],
+  "summary": "No semantic mismatch identified in the supplied policy and explicit funding/deployment rules under the creator-approved environment assumptions. Provisionally recommend this candidate for further review; this is not certification or a checked formal proof."
+}

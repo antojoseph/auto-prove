@@ -1,0 +1,260 @@
+{
+  "candidate_name": "proposal-07",
+  "findings": [
+    {
+      "requirement_id": "R4",
+      "explanation": "The policy says repeat is \"per_call\", which appears to allow another committed-amount payout on a later release call. That conflicts with the R4 mapping's permanent one-release limit. In this trace, a second payout would bring total payouts to 200 and use donated surplus, also violating R6. Under the intended behavior, the final release must fail.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "donate",
+          "caller": "eve",
+          "time": 2,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 11,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ],
+      "replay": {
+        "mismatch": true,
+        "requirements": [
+          "R4"
+        ],
+        "steps": [
+          {
+            "index": 0,
+            "action": {
+              "kind": "fund",
+              "caller": "alice",
+              "time": 1,
+              "amount": 100,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 1,
+            "action": {
+              "kind": "donate",
+              "caller": "eve",
+              "time": 2,
+              "amount": 100,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 200,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 200,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 2,
+            "action": {
+              "kind": "release",
+              "caller": "eve",
+              "time": 10,
+              "amount": 0,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 100,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 100,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 3,
+            "action": {
+              "kind": "release",
+              "caller": "bob",
+              "time": 11,
+              "amount": 0,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "revert",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 100,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 0,
+                "paid": 200,
+                "bob": 200,
+                "alice": 0,
+                "eve": 0,
+                "releases": 2
+              }
+            },
+            "differences": [
+              "R4"
+            ]
+          }
+        ]
+      },
+      "validated": true
+    }
+  ],
+  "bounded_check": {
+    "depth": 4,
+    "transitions_checked": 1304,
+    "witnesses": {
+      "R4": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "donate",
+          "caller": "eve",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    },
+    "status": "bounded_mismatch_found"
+  },
+  "validated_findings": 1,
+  "unsupported_findings": 0,
+  "detected_requirements": [
+    "R4"
+  ],
+  "missed_bounded_requirements": [],
+  "extra_assumptions": [],
+  "missing_assumptions": [],
+  "unresolved_questions": [
+    "Does \"repeat\": \"per_call\" permit a second successful release, or does the permanent one-release guard in the requirement mapping govern? The supplied candidate is internally inconsistent on this point."
+  ],
+  "accepted": false,
+  "disposition": "mismatch_found",
+  "human_approval": "pending",
+  "limitation": "Replay validates witnesses against a hand-authored reference interpretation. It does not certify English-to-Lean fidelity or Solidity/EVM correspondence.",
+  "lean": {
+    "status": "checked",
+    "kernel_checked": true,
+    "axioms": [
+      "propext"
+    ],
+    "validated_witnesses": 1,
+    "reference_equivalence_proved": false,
+    "scope": "Abstract transition model and generated witness/target claims only; human semantic review and EVM correspondence remain separate."
+  }
+}

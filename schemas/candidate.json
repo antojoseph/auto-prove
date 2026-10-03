@@ -1,0 +1,27 @@
+{
+  "type": "object", "additionalProperties": false,
+  "required": ["name", "policy", "requirement_mapping", "assumptions", "unresolved_questions"],
+  "properties": {
+    "name": {"type": "string"},
+    "policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["caller", "recipient", "unlock", "payout", "repeat", "failure", "scope"],
+      "properties": {
+        "caller": {"type": "string", "enum": ["anyone", "beneficiary"]},
+        "recipient": {"type": "string", "enum": ["beneficiary", "caller"]},
+        "unlock": {"type": "string", "enum": ["at_or_after", "after", "always"]},
+        "payout": {"type": "string", "enum": ["committed", "all_balance"]},
+        "repeat": {"type": "string", "enum": ["once", "per_call"]},
+        "failure": {"type": "string", "enum": ["rollback", "consume"]},
+        "scope": {"type": "string", "enum": ["arbitrary_callers", "beneficiary_only"]}
+      }
+    },
+    "requirement_mapping": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requirement_id", "formal_meaning"],
+      "properties": {"requirement_id": {"type": "string"}, "formal_meaning": {"type": "string"}}
+    }},
+    "assumptions": {"type": "array", "items": {"type": "string"}},
+    "unresolved_questions": {"type": "array", "items": {"type": "string"}}
+  }
+}

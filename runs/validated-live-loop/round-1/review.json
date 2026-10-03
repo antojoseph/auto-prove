@@ -1,0 +1,43 @@
+{
+  "candidate_name": "proposal-07",
+  "findings": [
+    {
+      "requirement_id": "R4",
+      "explanation": "The policy says repeat is \"per_call\", which appears to allow another committed-amount payout on a later release call. That conflicts with the R4 mapping's permanent one-release limit. In this trace, a second payout would bring total payouts to 200 and use donated surplus, also violating R6. Under the intended behavior, the final release must fail.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "donate",
+          "caller": "eve",
+          "time": 2,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 11,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [
+    "Does \"repeat\": \"per_call\" permit a second successful release, or does the permanent one-release guard in the requirement mapping govern? The supplied candidate is internally inconsistent on this point."
+  ],
+  "summary": "The repeat policy conflicts with the stated one-release guarantee. Resolve that conflict before accepting the candidate."
+}

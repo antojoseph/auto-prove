@@ -1,0 +1,228 @@
+{
+  "candidate_name": "proposal-08",
+  "findings": [
+    {
+      "requirement_id": "R5",
+      "explanation": "The consume failure rule spends the release right when the token transfer fails. Following funding, bob's failed release at 10 therefore changes release eligibility, and a later release at 11 with a successful transfer cannot pay. R5 requires full rollback of the failed transaction and preservation of the later valid release. This policy also conflicts with the supplied approved atomic-rollback assumption.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": false
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 11,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ],
+      "replay": {
+        "mismatch": true,
+        "requirements": [
+          "R2",
+          "R5"
+        ],
+        "steps": [
+          {
+            "index": 0,
+            "action": {
+              "kind": "fund",
+              "caller": "alice",
+              "time": 1,
+              "amount": 100,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 1,
+            "action": {
+              "kind": "release",
+              "caller": "bob",
+              "time": 10,
+              "amount": 0,
+              "transfer_ok": false
+            },
+            "intended": {
+              "outcome": "revert",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "revert",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": [
+              "R5"
+            ]
+          },
+          {
+            "index": 2,
+            "action": {
+              "kind": "release",
+              "caller": "bob",
+              "time": 11,
+              "amount": 0,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 0,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "candidate": {
+              "outcome": "revert",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": [
+              "R2"
+            ]
+          }
+        ]
+      },
+      "validated": true
+    }
+  ],
+  "bounded_check": {
+    "depth": 4,
+    "transitions_checked": 1400,
+    "witnesses": {
+      "R5": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": false
+        }
+      ],
+      "R2": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": false
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    },
+    "status": "bounded_mismatch_found"
+  },
+  "validated_findings": 1,
+  "unsupported_findings": 0,
+  "detected_requirements": [
+    "R5"
+  ],
+  "missed_bounded_requirements": [
+    "R2"
+  ],
+  "extra_assumptions": [],
+  "missing_assumptions": [],
+  "unresolved_questions": [],
+  "accepted": false,
+  "disposition": "mismatch_found",
+  "human_approval": "pending",
+  "limitation": "Replay validates witnesses against a hand-authored reference interpretation. It does not certify English-to-Lean fidelity or Solidity/EVM correspondence.",
+  "lean": {
+    "status": "checked",
+    "kernel_checked": true,
+    "axioms": [
+      "propext"
+    ],
+    "validated_witnesses": 1,
+    "reference_equivalence_proved": false,
+    "scope": "Abstract transition model and generated witness/target claims only; human semantic review and EVM correspondence remain separate."
+  }
+}

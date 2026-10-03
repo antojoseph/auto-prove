@@ -1,0 +1,27 @@
+{
+  "candidate_name": "proposal-03",
+  "findings": [
+    {
+      "requirement_id": "R3",
+      "explanation": "With recipient=caller, eve's valid release at 10 pays the committed 100 to eve. R3 requires payment to bob regardless of the triggering address, so the candidate confers the payout on the caller instead of preserving beneficiary entitlement. The prose mapping describes a different recipient rule.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "A nonbeneficiary caller receives the payout, contrary to R3."
+}

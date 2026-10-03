@@ -1,0 +1,6 @@
+{
+  "candidate_name": "proposal-08",
+  "findings": [],
+  "unresolved_questions": [],
+  "summary": "Provisional recommendation: the supplied candidate meaning matches R1\u2013R7 and adds no unapproved environment assumptions. No Lean implementation was supplied for verification."
+}

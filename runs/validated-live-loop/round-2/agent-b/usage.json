@@ -1,0 +1,11 @@
+{
+  "elapsed_seconds": 23.54,
+  "usage": {
+    "input_tokens": 15277,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1726,
+    "reasoning_output_tokens": 1664
+  },
+  "model": "gpt-6-sol"
+}

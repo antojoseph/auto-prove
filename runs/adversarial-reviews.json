@@ -1,0 +1,136 @@
+{
+  "reviews": [
+    {
+      "candidate_name": "proposal-01",
+      "findings": [],
+      "unresolved_questions": [],
+      "summary": "No semantic mismatch identified in the supplied policy and explicit funding/deployment rules under the creator-approved environment assumptions. Provisionally recommend this candidate for further review; this is not certification or a checked formal proof."
+    },
+    {
+      "candidate_name": "proposal-02",
+      "findings": [
+        {
+          "requirement_id": "R2",
+          "explanation": "The formal policy restricts release callers to the beneficiary. After alice funds 100, eve's release at deadline 10 with a successful token transfer must be permitted by R2, but this policy rejects it because eve is not bob. This is an exclusion of an intended successful transaction, independent of whether eve is honest. The prose mapping's claim of authorization for every address does not repair the policy restriction.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "eve", "time": 10, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "Restricting release to bob contradicts open release authorization in R2."
+    },
+    {
+      "candidate_name": "proposal-03",
+      "findings": [
+        {
+          "requirement_id": "R3",
+          "explanation": "With recipient=caller, eve's valid release at 10 pays the committed 100 to eve. R3 requires payment to bob regardless of the triggering address, so the candidate confers the payout on the caller instead of preserving beneficiary entitlement. The prose mapping describes a different recipient rule.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "eve", "time": 10, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "A nonbeneficiary caller receives the payout, contrary to R3."
+    },
+    {
+      "candidate_name": "proposal-04",
+      "findings": [
+        {
+          "requirement_id": "R2",
+          "explanation": "The after unlock rule requires time strictly greater than 10. With funding complete and no prior release, bob's release at exactly 10 with transfer_ok=true is allowed by R2 but rejected by the policy. The mapping's inclusion of equality conflicts with the formal unlock rule.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "bob", "time": 10, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "The deadline equality case is incorrectly excluded."
+    },
+    {
+      "candidate_name": "proposal-05",
+      "findings": [
+        {
+          "requirement_id": "R2",
+          "explanation": "The always unlock rule permits release before deadline 10. After alice funds 100 at time 1, bob can successfully release at 9 under the policy, whereas R2 requires that transaction to fail. This defect occurs even for the beneficiary caller.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "bob", "time": 9, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "The policy allows premature release."
+    },
+    {
+      "candidate_name": "proposal-06",
+      "findings": [
+        {
+          "requirement_id": "R6",
+          "explanation": "After funding 100 and an unsolicited donation of 100, escrow balance is 200. The all_balance rule pays all 200 to bob at release, instead of paying the committed 100 and leaving the donated 100 locked. This increases entitlement in violation of R6; the same payout also violates R3's committed-amount rule and R4's cumulative cap of 100. These are consequences of the single all-balance mismatch.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "donate", "caller": "eve", "time": 2, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "bob", "time": 10, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "Donations are paid out, increasing entitlement and exceeding the committed cap."
+    },
+    {
+      "candidate_name": "proposal-07",
+      "findings": [
+        {
+          "requirement_id": "R4",
+          "explanation": "The per_call repeat rule permits another committed payout after a successful release. Funding 100 plus a donation of 100 supplies enough real balance for two payouts of 100, avoiding an impossible insufficient-balance execution. Releases at 10 and 11 both succeed under the policy, paying 200 in total and recording two successful releases. R4 permits only one success and at most 100 paid out. The second payout also unlocks donated surplus contrary to R6.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "donate", "caller": "eve", "time": 2, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "bob", "time": 10, "amount": 0, "transfer_ok": true},
+            {"kind": "release", "caller": "eve", "time": 11, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "Repeated releases violate the one-success invariant and payout cap."
+    },
+    {
+      "candidate_name": "proposal-08",
+      "findings": [
+        {
+          "requirement_id": "R5",
+          "explanation": "The consume failure rule spends the release right when the token transfer fails. Following funding, bob's failed release at 10 therefore changes release eligibility, and a later release at 11 with a successful transfer cannot pay. R5 requires full rollback of the failed transaction and preservation of the later valid release. This policy also conflicts with the supplied approved atomic-rollback assumption.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "bob", "time": 10, "amount": 0, "transfer_ok": false},
+            {"kind": "release", "caller": "bob", "time": 11, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [],
+      "summary": "A failed transfer consumes eligibility and prevents the required retry."
+    },
+    {
+      "candidate_name": "proposal-09",
+      "findings": [
+        {
+          "requirement_id": "R7",
+          "explanation": "The beneficiary_only guarantee scope omits arbitrary nonbeneficiary callers. The trace funds the escrow legitimately and has eve trigger release at 10; R7 requires the guarantees to cover this sequence, while the candidate's scope excludes eve's call even though caller=anyone authorizes it. This is a missing quantified guarantee, not evidence that eve's transaction actually pays incorrectly or that a malicious caller alone causes a defect. The prose mapping's arbitrary-caller claim cannot broaden the formal scope.",
+          "trace": [
+            {"kind": "fund", "caller": "alice", "time": 1, "amount": 100, "transfer_ok": true},
+            {"kind": "release", "caller": "eve", "time": 10, "amount": 0, "transfer_ok": true}
+          ]
+        }
+      ],
+      "unresolved_questions": [
+        "R7: The added beneficiary-only scope assumption requires creator review and conflicts with the present arbitrary-caller intent. The supplied policy does not establish what guarantees, if any, hold outside that scope; no concrete incorrect payout is asserted for the excluded trace."
+      ],
+      "summary": "Guarantees have been narrowed to beneficiary callers; nonbeneficiary executions lack the required coverage."
+    }
+  ]
+}

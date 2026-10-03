@@ -1,0 +1,6 @@
+name = "escrow"
+version = "0.1.0"
+defaultTargets = ["Escrow"]
+
+[[lean_lib]]
+name = "Escrow"

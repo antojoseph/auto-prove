@@ -1,0 +1,34 @@
+{
+  "candidate_name": "proposal-08",
+  "findings": [
+    {
+      "requirement_id": "R5",
+      "explanation": "The consume failure rule spends the release right when the token transfer fails. Following funding, bob's failed release at 10 therefore changes release eligibility, and a later release at 11 with a successful transfer cannot pay. R5 requires full rollback of the failed transaction and preservation of the later valid release. This policy also conflicts with the supplied approved atomic-rollback assumption.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": false
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 11,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "A failed transfer consumes eligibility and prevents the required retry."
+}

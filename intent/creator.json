@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "title": "Fixed-token escrow specification",
+  "units": "integer token base units",
+  "actors": {"depositor": "alice", "beneficiary": "bob", "other": "eve"},
+  "example": {"amount": 100, "deadline": 10},
+  "requirements": [
+    {"id": "R1", "text": "The depositor funds a single escrow exactly once with the committed amount. The amount and beneficiary are immutable. Deployment requires a positive amount, a nonzero beneficiary, and a deadline in the future at deployment. Funding is allowed before, at, or after the deadline."},
+    {"id": "R2", "text": "Before the deadline, release must fail. At the deadline and afterward, any address may trigger release when funded and not already released."},
+    {"id": "R3", "text": "A successful release pays the entire committed amount to the beneficiary, regardless of who triggers it. Calling release does not confer ownership."},
+    {"id": "R4", "text": "Across every transaction sequence, total escrow payouts must not exceed the committed amount. A successful release happens at most once."},
+    {"id": "R5", "text": "If token transfer fails, the release transaction reverts with no state changes. A later valid release must still be possible."},
+    {"id": "R6", "text": "Unsolicited token donations do not increase the beneficiary entitlement. Surplus remains locked in this v1 contract."},
+    {"id": "R7", "text": "The guarantees cover calls from arbitrary addresses, including malicious callers. Do not assume the caller is honest or the beneficiary."}
+  ],
+  "approved_environment_assumptions": [
+    "The chosen ERC20 token preserves balances and transfers exactly the requested integer amount. Fee-on-transfer and rebasing tokens are outside this model.",
+    "A failed transaction rolls back token and escrow state atomically.",
+    "Time is the chain timestamp and is nondecreasing across transactions. The deadline is fixed at deployment.",
+    "The Lean transition model is sequential and abstracts away callbacks, gas, compiler behavior and the EVM. Solidity callback behavior requires separate executable tests."
+  ],
+  "review_status": "research_fixture_pending_creator_review"
+}

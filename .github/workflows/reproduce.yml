@@ -1,0 +1,35 @@
+name: Reproduce escrow experiment
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Lean
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh --output "$RUNNER_TEMP/auto-prove-elan-init.sh"
+          sh "$RUNNER_TEMP/auto-prove-elan-init.sh" -y --no-modify-path --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install leanprover/lean4:v4.22.0
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Reproduce Python, Lean and Solidity results
+        run: bash scripts/reproduce.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reproduced-reports
+          path: runs/reproduced-*/

@@ -1,0 +1,156 @@
+{
+  "candidate_name": "proposal-03",
+  "findings": [
+    {
+      "requirement_id": "R3",
+      "explanation": "With recipient=caller, eve's valid release at 10 pays the committed 100 to eve. R3 requires payment to bob regardless of the triggering address, so the candidate confers the payout on the caller instead of preserving beneficiary entitlement. The prose mapping describes a different recipient rule.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "eve",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ],
+      "replay": {
+        "mismatch": true,
+        "requirements": [
+          "R3"
+        ],
+        "steps": [
+          {
+            "index": 0,
+            "action": {
+              "kind": "fund",
+              "caller": "alice",
+              "time": 1,
+              "amount": 100,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": false,
+                "balance": 100,
+                "paid": 0,
+                "bob": 0,
+                "alice": 0,
+                "eve": 0,
+                "releases": 0
+              }
+            },
+            "differences": []
+          },
+          {
+            "index": 1,
+            "action": {
+              "kind": "release",
+              "caller": "eve",
+              "time": 10,
+              "amount": 0,
+              "transfer_ok": true
+            },
+            "intended": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 0,
+                "paid": 100,
+                "bob": 100,
+                "alice": 0,
+                "eve": 0,
+                "releases": 1
+              }
+            },
+            "candidate": {
+              "outcome": "ok",
+              "state": {
+                "funded": true,
+                "released": true,
+                "balance": 0,
+                "paid": 100,
+                "bob": 0,
+                "alice": 0,
+                "eve": 100,
+                "releases": 1
+              }
+            },
+            "differences": [
+              "R3"
+            ]
+          }
+        ]
+      },
+      "validated": true
+    }
+  ],
+  "bounded_check": {
+    "depth": 4,
+    "transitions_checked": 1448,
+    "witnesses": {
+      "R3": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 0,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "alice",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    },
+    "status": "bounded_mismatch_found"
+  },
+  "validated_findings": 1,
+  "unsupported_findings": 0,
+  "detected_requirements": [
+    "R3"
+  ],
+  "missed_bounded_requirements": [],
+  "extra_assumptions": [],
+  "missing_assumptions": [],
+  "unresolved_questions": [],
+  "accepted": false,
+  "disposition": "mismatch_found",
+  "human_approval": "pending",
+  "limitation": "Replay validates witnesses against a hand-authored reference interpretation. It does not certify English-to-Lean fidelity or Solidity/EVM correspondence.",
+  "lean": {
+    "status": "checked",
+    "kernel_checked": true,
+    "axioms": [
+      "propext"
+    ],
+    "validated_witnesses": 1,
+    "reference_equivalence_proved": false,
+    "scope": "Abstract transition model and generated witness/target claims only; human semantic review and EVM correspondence remain separate."
+  }
+}

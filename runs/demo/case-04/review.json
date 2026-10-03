@@ -1,0 +1,27 @@
+{
+  "candidate_name": "proposal-04",
+  "findings": [
+    {
+      "requirement_id": "R2",
+      "explanation": "The after unlock rule requires time strictly greater than 10. With funding complete and no prior release, bob's release at exactly 10 with transfer_ok=true is allowed by R2 but rejected by the policy. The mapping's inclusion of equality conflicts with the formal unlock rule.",
+      "trace": [
+        {
+          "kind": "fund",
+          "caller": "alice",
+          "time": 1,
+          "amount": 100,
+          "transfer_ok": true
+        },
+        {
+          "kind": "release",
+          "caller": "bob",
+          "time": 10,
+          "amount": 0,
+          "transfer_ok": true
+        }
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "summary": "The deadline equality case is incorrectly excluded."
+}

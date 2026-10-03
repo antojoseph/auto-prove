@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escrow specification review</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#173536;background:#f5f7f3}body{margin:0}main{max-width:1150px;margin:40px auto;padding:0 24px}h1{font-size:38px;margin-bottom:12px}h2{font-size:24px;margin-top:36px}p{line-height:1.6}label{display:block;font-weight:600;margin:24px 0 8px}select,button{font:inherit;padding:10px 14px;border:1px solid #93aaa4;border-radius:4px;background:white;color:inherit}button{cursor:pointer;margin:4px 8px 4px 0}button[aria-pressed=true]{background:#087c67;color:white}table{width:100%;border-collapse:collapse;margin:16px 0;background:white}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid #d7e1dd;line-height:1.4}th{background:#e8efeb}.muted{color:#526966}.status{font-weight:600;color:#087c67}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;background:#e8efeb;padding:16px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:32px}details{margin:16px 0}summary{cursor:pointer}.warning{color:#714814}@media(max-width:750px){.columns{grid-template-columns:1fr}main{margin-top:24px}h1{font-size:30px}table{font-size:14px}th,td{padding:8px}}
+</style></head><body><main>
+<h1>Escrow specification review</h1>
+<p>A proposes the formal meaning. B challenges it with transactions. Replay and Lean check each concrete objection against the reference model.</p>
+<p class="warning"><strong>Creator approval pending.</strong> These checks cover the research model. They do not certify English translation or deployed Solidity behavior.</p>
+<details><summary>Creator intent and environment assumptions</summary><div id="intent"></div></details>
+<label for="case">Specification proposal</label><select id="case"></select>
+<p id="status" class="status"></p>
+<div class="columns"><section><h2>Proposed formal meaning</h2><table><thead><tr><th>Definition</th><th>Choice</th></tr></thead><tbody id="policy"></tbody></table></section>
+<section><h2>Independent review</h2><p id="review"></p><div id="findings"></div></section></div>
+<section id="trace-section" hidden><h2>Counterexample replay</h2><p id="explanation"></p>
+<table><thead><tr><th>Transaction</th><th>Intended result</th><th>Candidate result</th><th>Requirement</th></tr></thead><tbody id="trace"></tbody></table></section>
+<details><summary>Proof check and bounded search</summary><pre id="checks"></pre></details>
+<details><summary>Requirement mapping</summary><div id="mapping"></div></details>
+<details><summary>Provenance and limits</summary><pre id="provenance"></pre></details>
+</main><script type="application/json" id="data">__REPORT_DATA__</script>
+<script>
+const data=JSON.parse(document.getElementById('data').textContent),$=id=>document.getElementById(id);
+const labels={caller:'Who may trigger release',recipient:'Who receives payment',unlock:'Deadline condition',payout:'Payment amount',repeat:'Repeated calls',failure:'Failed transfer',scope:'Callers covered by claim'};
+function node(tag,text,parent){const n=document.createElement(tag);n.textContent=text;parent.append(n);return n}
+for(const r of data.intent.requirements)node('p',r.id+': '+r.text,$('intent'));
+node('h3','Explicit environment assumptions',$('intent'));
+for(const a of data.intent.approved_environment_assumptions)node('p',a,$('intent'));
+data.cases.forEach((c,i)=>{const n=node('option',c.candidate.name,$('case'));n.value=i});
+$('provenance').textContent=JSON.stringify({...data.provenance,intent_sha256:data.intent_sha256,accepted:data.accepted,human_approval:data.human_approval},null,2);
+function drawTrace(f){$('trace-section').hidden=false;$('explanation').textContent=f.requirement_id+': '+f.explanation+' '+(f.validated?'Replay supports this objection.':'Replay did not substantiate this objection.');$('trace').replaceChildren();
+for(const s of f.replay.steps){const r=node('tr','',$('trace'));node('td',s.action.kind+' by '+s.action.caller+' at t='+s.action.time+(s.action.kind==='release'?'':', amount='+s.action.amount)+(s.action.transfer_ok?'':' (transfer fails)'),r);
+for(const k of ['intended','candidate']){const x=s[k];node('td',x.outcome+'; total paid '+x.state.paid+'; beneficiary '+x.state.bob+'; other '+(x.state.alice+x.state.eve)+'; released '+x.state.released,r)}node('td',s.differences.join(', ')||'Same observation',r)}}
+function draw(){const c=data.cases[Number($('case').value)],e=c.evaluation;$('policy').replaceChildren();for(const [k,v] of Object.entries(c.candidate.policy)){const r=node('tr','',$('policy'));node('td',labels[k],r);node('td',v.replaceAll('_',' '),r)}
+$('status').textContent=e.validated_findings+' supported objection(s), '+e.unsupported_findings+' unsupported objection(s). Lean: '+e.lean.status+'. Human approval: pending.';
+$('review').textContent=c.review.summary;$('findings').replaceChildren();$('trace-section').hidden=true;e.findings.forEach((f,i)=>{const b=node('button',f.requirement_id+' objection '+(i+1),$('findings'));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{for(const x of $('findings').children)x.setAttribute('aria-pressed','false');b.setAttribute('aria-pressed','true');drawTrace(f)}});
+if(e.findings.length){$('findings').firstChild.click()}else node('p','No objection from B. This remains a provisional recommendation.',$('findings'));
+$('checks').textContent=JSON.stringify({lean:e.lean,bounded_check:e.bounded_check,extra_assumptions:e.extra_assumptions,missing_assumptions:e.missing_assumptions,unresolved_questions:e.unresolved_questions,limitation:e.limitation},null,2);
+$('mapping').replaceChildren();for(const r of c.candidate.requirement_mapping)node('p',r.requirement_id+': '+r.formal_meaning,$('mapping'));}
+$('case').onchange=draw;draw();
+</script></body></html>

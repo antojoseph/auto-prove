@@ -1,0 +1,62 @@
+{
+  "date": "2026-10-02",
+  "python": {
+    "status": "passed",
+    "tests": 20,
+    "agent_transport_and_repair_tests": "mocked responses; no live inference"
+  },
+  "solidity": {
+    "status": "passed",
+    "tests": 19,
+    "fuzz_runs": 256,
+    "generated_reference_trace_tests": 8,
+    "compiler": "0.8.28"
+  },
+  "lean": {
+    "status": "passed",
+    "version": "4.22.0",
+    "checked_cases": 11,
+    "scope": "abstract transition model; no proof of English fidelity or Solidity/EVM correspondence",
+    "recorded_seeded_cases": 9,
+    "live_review_repair_cases": 2
+  },
+  "recorded_agents": {
+    "proposer": "actual independent agent",
+    "reviewer": "actual independent agent",
+    "candidate_cases": 9,
+    "developer_seeded_flaws": 8,
+    "supported_objections": 8,
+    "unsupported_objections": 0,
+    "flawed_candidates_with_supported_objections": 8,
+    "general_reliability_estimate": false
+  },
+  "live_codex_review_repair": {
+    "status": "passed",
+    "user_authorized": true,
+    "model": "gpt-6-sol",
+    "configured_default_attempt": "Account endpoint rejected gpt-6.1-sol; default settings were not changed.",
+    "rounds": 2,
+    "first_review_supported_objections": 1,
+    "first_review_unsupported_objections": 0,
+    "repair": "Changed repeat rule from per_call to once",
+    "second_review_supported_objections": 0,
+    "second_review_unsupported_objections": 0,
+    "second_review_unresolved_questions": [],
+    "repaired_reference_equivalence_lean_checked": true,
+    "report": "runs/validated-live-loop/report.html",
+    "startup_fixes": "Use unquoted dotted connector override segments and disable plugins before enumerating configured connectors."
+  },
+  "human_semantic_approval": "pending",
+  "contract_deployment": "none",
+  "publication_reproduction": {
+    "status": "passed",
+    "source": "clean export of staged repository files",
+    "python_tests": 20,
+    "solidity_tests": 19,
+    "seeded_lean_cases": 9,
+    "recorded_live_lean_cases": 2,
+    "lean_resolution": "installed executable from PATH; no .tools directory in export",
+    "model_calls": false,
+    "platform": "macOS arm64"
+  }
+}

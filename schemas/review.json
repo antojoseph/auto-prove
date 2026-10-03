@@ -1,0 +1,28 @@
+{
+  "type": "object", "additionalProperties": false,
+  "required": ["candidate_name", "findings", "unresolved_questions", "summary"],
+  "properties": {
+    "candidate_name": {"type": "string"},
+    "findings": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requirement_id", "explanation", "trace"],
+      "properties": {
+        "requirement_id": {"type": "string"},
+        "explanation": {"type": "string"},
+        "trace": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "caller", "time", "amount", "transfer_ok"],
+          "properties": {
+            "kind": {"type": "string", "enum": ["fund", "donate", "release"]},
+            "caller": {"type": "string", "enum": ["alice", "bob", "eve"]},
+            "time": {"type": "integer", "minimum": 0},
+            "amount": {"type": "integer", "minimum": 0},
+            "transfer_ok": {"type": "boolean"}
+          }
+        }}
+      }
+    }},
+    "unresolved_questions": {"type": "array", "items": {"type": "string"}},
+    "summary": {"type": "string"}
+  }
+}
