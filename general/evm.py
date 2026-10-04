@@ -30,13 +30,74 @@ def command(arguments, timeout=30):
     return result.stdout.strip()
 
 
-def replay(data, trace, output):
+def validate_trace(trace):
+    if not isinstance(trace, dict) or set(trace) != {'contract_name', 'constructor_arguments', 'actions', 'observations'}:
+        raise ValueError('Invalid transaction trace fields')
+    if not isinstance(trace['contract_name'], str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}', trace['contract_name']):
+        raise ValueError('Invalid contract name')
+    def args(values):
+        if not isinstance(values, list) or len(values) > 20 or any(not isinstance(v, str) or len(v) > 4096 or v.startswith('-') for v in values):
+            raise ValueError('Invalid ABI arguments')
+    args(trace['constructor_arguments'])
+    if not isinstance(trace['actions'], list) or not 1 <= len(trace['actions']) <= 30:
+        raise ValueError('Need 1-30 replay actions')
+    if not isinstance(trace['observations'], list) or len(trace['observations']) > 30:
+        raise ValueError('Trace exceeds bounded replay budget')
+    for action in trace['actions']:
+        if not isinstance(action, dict) or set(action) != {'account', 'function', 'arguments', 'value_wei'}:
+            raise ValueError('Invalid action fields')
+        if type(action['account']) is not int or not 0 <= action['account'] < 10:
+            raise ValueError('Invalid local account index')
+        if not isinstance(action['function'], str) or (action['function'] and not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*\([A-Za-z0-9_,()\[\]]*\)', action['function'])):
+            raise ValueError('Invalid ABI signature')
+        args(action['arguments'])
+        if not action['function'] and action['arguments']: raise ValueError('Empty calldata takes no arguments')
+        value = action['value_wei']
+        if not isinstance(value, str) or not re.fullmatch(r'[0-9]{1,78}', value) or int(value) >= 2**256:
+            raise ValueError('Invalid wei amount')
+    for observation in trace['observations']:
+        if not isinstance(observation, dict) or set(observation) != {'label', 'function', 'arguments'}:
+            raise ValueError('Invalid observation fields')
+        if not isinstance(observation['label'], str) or len(observation['label']) > 200:
+            raise ValueError('Invalid observation label')
+        if not isinstance(observation['function'], str) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9_]*\([A-Za-z0-9_,()\[\]]*\)', observation['function']):
+            raise ValueError('Invalid ABI signature')
+        args(observation['arguments'])
+    return trace
+
+
+def decode_scalar(raw, abi_type):
+    """Decode one static ABI value; never guess a value from a failed/empty call."""
+    if not isinstance(raw, str) or not re.fullmatch(r'0x[0-9a-fA-F]{64}', raw):
+        raise ValueError('Expected one static ABI result')
+    number = int(raw, 16)
+    if abi_type == 'bool':
+        if number not in (0, 1): raise ValueError('Noncanonical ABI bool')
+        return bool(number)
+    if abi_type == 'address':
+        if number >= 2**160: raise ValueError('Noncanonical ABI address')
+        return '0x' + raw[-40:].lower()
+    match = re.fullmatch(r'(u?int)([0-9]+)', abi_type)
+    if not match: raise ValueError('Probe supports only uint/int, bool or address scalar results')
+    bits = int(match[2])
+    if bits not in range(8, 257, 8): raise ValueError('Unsupported ABI integer size')
+    if match[1] == 'uint':
+        if number >= 2**bits: raise ValueError('Noncanonical ABI uint')
+        return number
+    signed = number - 2**256 if number >= 2**255 else number
+    if not -(2**(bits-1)) <= signed < 2**(bits-1): raise ValueError('Noncanonical ABI int')
+    return signed
+
+
+def replay(data, trace, output, probes=None):
     output = Path(output); output.mkdir(parents=True, exist_ok=True)
     report = {'status':'inconclusive', 'input_digest':digest(data), 'trace_digest':digest(trace),
               'scope':'concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof',
-              'intent_connection':'fallible interpretation; creator review pending', 'transactions':[], 'observations':[]}
+              'intent_connection':'fallible interpretation; creator review pending', 'transactions':[], 'observations':[],
+              'frames':[], 'probes_digest':digest(probes) if probes is not None else None}
     process = None
     try:
+        validate_trace(trace)
         solc = executable('AUTO_PROVE_SOLC', 'solc')
         anvil = executable('AUTO_PROVE_ANVIL', 'anvil')
         cast = executable('AUTO_PROVE_CAST', 'cast')
@@ -121,6 +182,27 @@ def replay(data, trace, output):
         deployment = receipt({'from':account(0),'data':'0x'+bytecode+encoded,'value':'0x0'})
         if int(deployment['status'],16) != 1: raise ValueError('Local deployment reverted')
         address = deployment['contractAddress']; report['contract_address'] = address
+        def capture(step):
+            if probes is None: return
+            values = {}; raw_values = {}
+            for probe in probes:
+                label = probe['label']
+                if label in values: raise ValueError('Duplicate trusted probe label')
+                if probe['kind'] == 'balance':
+                    raw = rpc('eth_getBalance', [address, 'latest']); value = int(raw, 16)
+                elif probe['kind'] == 'view':
+                    sig = signature(probe['function'])
+                    entries = [e for e in selected['abi'] if e.get('type') == 'function' and
+                               e['name'] + '(' + ','.join(v['type'] for v in e['inputs']) + ')' == sig]
+                    if len(entries) != 1 or entries[0]['stateMutability'] not in ('view', 'pure') or len(entries[0]['outputs']) != 1:
+                        raise ValueError('Trusted probe must select one scalar view/pure ABI function')
+                    calldata = command([cast, 'calldata', sig] + arguments(probe['arguments']))
+                    raw = rpc('eth_call', [{'from':account(0), 'to':address, 'data':calldata}, 'latest'])
+                    value = decode_scalar(raw, entries[0]['outputs'][0]['type'])
+                else: raise ValueError('Unknown trusted probe kind')
+                values[label] = value; raw_values[label] = raw
+            report['frames'].append({'step':step, 'values':values, 'raw_values':raw_values})
+        capture(0)
         for action in trace['actions']:
             calldata = '0x'
             if action['function']:
@@ -130,6 +212,7 @@ def replay(data, trace, output):
                               'value':amount(action['value_wei'])})
             report['transactions'].append({'action':action,'status':'success' if int(result['status'],16)==1 else 'reverted',
                                             'transaction_hash':result['transactionHash'],'gas_used':int(result['gasUsed'],16)})
+            capture(len(report['transactions']))
         for observation in trace['observations']:
             calldata = command([cast,'calldata',signature(observation['function'])] + arguments(observation['arguments']))
             value = rpc('eth_call',[{'from':account(0),'to':address,'data':calldata},'latest'])

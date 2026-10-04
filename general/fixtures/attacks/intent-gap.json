@@ -1,0 +1,58 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "d397a7baab6ccbb70be6e41983855edd7a5d529144f82a1388811694b0304b45",
+  "policy_digest": "28ddf18b2802b9c473d7e7dfb5e51a795931f1460a70f799ff08e9e32a621d88",
+  "contributor": "developer-authored-demo",
+  "requirement_id": "CollateralBacking",
+  "reasoning": "The borrowing requirement passes, but withdrawing all collateral leaves debt unbacked and contradicts the explicit withdrawal intent.",
+  "trace": {
+    "contract_name": "LendingPool",
+    "constructor_arguments": [],
+    "actions": [
+      {
+        "account": 1,
+        "function": "",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 0,
+        "function": "borrow(uint256)",
+        "arguments": [
+          "50"
+        ],
+        "value_wei": "0"
+      },
+      {
+        "account": 0,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "100"
+        ],
+        "value_wei": "0"
+      }
+    ],
+    "observations": [
+      {
+        "label": "remaining collateral",
+        "function": "collateral(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      },
+      {
+        "label": "outstanding debt",
+        "function": "debt(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      }
+    ]
+  }
+}

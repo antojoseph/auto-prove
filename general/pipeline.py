@@ -82,10 +82,11 @@ def render_report(output, report):
 
 
 def run(data, output, rounds=2, model=None, timeout=300, candidate=None, skip=False,
-        agent=invoke_agent, evm=False):
+        agent=invoke_agent, evm=False, attack_registry=None):
     data = validate_input(data); output = Path(output)
     if output.exists(): raise ValueError('Use a new output directory to preserve evidence')
     if not 1 <= rounds <= 3: raise ValueError('Use 1-3 bounded rounds')
+    if attack_registry and not evm: raise ValueError('Accepted transaction regressions require --evm')
     output.mkdir(parents=True)
     write(output/'input.json', data)
     report = {'version':'general-pipeline-v1', 'input':data, 'rounds':[],
@@ -107,6 +108,9 @@ def run(data, output, rounds=2, model=None, timeout=300, candidate=None, skip=Fa
             row['status'] = 'unsupported'; render_report(output, report); break
         snapshot = freeze(data, candidate); write(folder/'snapshot.json', snapshot)
         row['snapshot_digest'] = snapshot['digest']; row['property_changes'] = changes(previous, snapshot)
+        if attack_registry:
+            from .attacks import regress
+            row['transaction_regressions'] = regress(snapshot, attack_registry, folder/'transaction-regressions')
         print('Round ' + str(number) + ': checking frozen target and proof attempts', flush=True)
         proofs = {p['id']:p['proof'] for p in candidate['properties']}
         source = theorem_source(spec, proofs); (folder/'Solution.lean').write_text(source)
@@ -116,7 +120,8 @@ def run(data, output, rounds=2, model=None, timeout=300, candidate=None, skip=Fa
             diagnostics[path.name] = path.read_text()[-12000:]
         print('Round ' + str(number) + ': independent attack review', flush=True)
         review = agent('general_reviewer', {'input':data, 'snapshot':snapshot,
-                       'proof_status':proof_check, 'diagnostics':diagnostics, 'history':history},
+                       'proof_status':proof_check, 'diagnostics':diagnostics, 'history':history,
+                       'transaction_regressions':row.get('transaction_regressions')},
                        folder/'adversary', timeout, model=model)
         review_check(snapshot, review); write(folder/'review.json', review); row['review'] = review
         for i, finding in enumerate(review['findings']):
@@ -140,9 +145,10 @@ def run(data, output, rounds=2, model=None, timeout=300, candidate=None, skip=Fa
         row['status'] = 'needs_review' if review['findings'] else 'provisionally_reviewed'
         history.append({'round':number, 'specification':spec, 'proof_status':proof_check,
                         'findings':row['findings'], 'property_changes':row['property_changes'],
-                        'earlier_attack_replays':row['earlier_attack_replays']})
+                        'earlier_attack_replays':row['earlier_attack_replays'],
+                        'transaction_regressions':row.get('transaction_regressions')})
         render_report(output, report)
-        if not review['findings'] and proof_check['status'] == 'proved': break
+        if not review['findings'] and proof_check['status'] == 'proved' and row.get('transaction_regressions', {}).get('status', 'passed_replay') == 'passed_replay': break
         if number < rounds:
             print('Revising using checked evidence and separately labelled objections', flush=True)
             candidate = agent('general_proposer', {'input':data, 'previous_candidate':candidate,
