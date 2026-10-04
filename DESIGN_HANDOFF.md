@@ -178,6 +178,62 @@ These cases have unit coverage, but independent live/integration checks and host
 
 The existing Yukon manifest still accepts proposer/reviewer prompt changes. **Direct transaction contributions are local CLI artifacts; they are not yet a live Yukon submission mode.** No new platform integration, public challenge, voting system, reward allocation or payout has been implemented.
 
+## What to do next, in order
+
+These are planned tasks, not completed work. Live verification is assigned to the maintainer or their chosen researcher; no additional execution is implied by this handoff.
+
+### 1. Independently verify the current local loop
+
+**Owner:** maintainer / verification researcher.
+
+Run the commands in the inspection and testing section from a fresh checkout. Record the commit, runtime versions, command outcomes, receipts, state histories and requirement evaluations. Check both existing-specification and intent-gap examples, acceptance, duplicate handling, and original/source-patched regressions. Also verify that removing a requirement cannot erase its accepted case.
+
+**Deliverable:** a verification report with reproducible, credential-free evidence and a list of failures or inconclusive checks. Label each expected outcome confirmed, failed or not run. This is the immediate next task; the current 49 passing unit tests do not replace it.
+
+### 2. Fix discrepancies and make verification repeatable
+
+**Owner:** implementation engineer, with the verification researcher reviewing results.
+
+Fix issues discovered in step 1 without changing the original requirement merely to make a case pass. Add meaningful regression coverage for those issues. Include `test_attacks.py` in CI and add a model-free integration job with pinned replay dependencies. Ensure infrastructure failures remain distinguishable from rejected contributions.
+
+**Deliverable:** a fresh checkout reproduces the reviewed outcomes, and CI saves the evidence needed to inspect failures. Historical evidence remains preserved.
+
+### 3. Complete creator review and specification revision
+
+**Owner:** specification engineer and challenge creator.
+
+Build the missing path from source and English intent to proposed operational policies. Show the creator the requirement, intent quotation, assumptions, observed state fields, predicate and any Lean mapping before approval. Record decisions and create a new frozen version after a meaning change. For the source-patched example, regenerate and review the formal model and targets; the current fixture only isolates concrete replay behavior.
+
+**Deliverable:** one reviewed case passes through proposal, concrete evidence, creator decision and specification revision. Its original regression survives into the new version. Model observations, concrete requirement failures and exact Lean refutations remain separately labeled.
+
+### 4. Add direct contributions to an internal Yukon challenge
+
+**Owner:** Yukon integration engineer and challenge maintainer.
+
+Add a transaction-contribution mode alongside the existing prompt-improvement benchmark. The hosted runner must obtain the snapshot and policy from the maintainer, authenticate attribution through the platform, enforce input and resource limits, and publish version-linked evidence. Connect accepted findings to the maintainer-owned registry and discussion entry. Document how contributors obtain the current challenge version and submit an artifact.
+
+**Deliverable:** one independent contributor submits through Yukon, receives a reproducible result, and can inspect the evidence and acceptance decision. Rejected or inconclusive entries remain visible with their reasons. No automatic monetary payout is required for this first internal test.
+
+### 5. Test transfer and useful diversity
+
+**Owner:** research team.
+
+Add at least one different contract family using the same contribution format and runner. Include cases where no violation should be demonstrated, cases with a real requirement failure, and cases requiring creator clarification. Invite a small set of independently operated agents or model families. Track distinct supported findings, false objections, unresolved requirements, time/cost, and survival of historical cases.
+
+**Deliverable:** evidence that the mechanism transfers beyond the public lending fixture. Keep developer-authored demonstrations separate from agent discoveries. Evaluate prompt improvements on held-out cases rather than rewarding memorization of the public examples.
+
+### 6. Define monetary credit before a rewarded public pilot
+
+**Owner:** challenge maintainer and Yukon rewards team.
+
+Specify which reviewed contributions earn discovery, independent reproduction or repair credit. Define handling for copied findings, semantically equivalent cases, multiple accounts, shared contributions and disputes. Keep votes useful for prioritizing review; they must not override a valid counterexample or decide formal correctness. Separate finding acceptance from payout authorization.
+
+**Deliverable:** written reward rules, reviewed failure scenarios, a bounded test budget and an auditable acceptance-to-reward record. Exact-case deduplication alone is insufficient for this step.
+
+### Later scope
+
+After the internal milestone, extend multi-contract and callback scenarios, richer observations, formal model/execution connections and reviewed requirement migration. A public pilot should have held-out evaluation, tested submission isolation and clear limits on its claims. Broad contract support and comprehensive security certification are not prerequisites for a narrowly scoped internal test, and are not established by it.
+
 ## First acceptance milestone
 
 An independent reviewer can reproduce both types of requirement violation, accept one reviewed finding, recover its saved case in a fresh process, show that a specification change cannot hide it, and distinguish a selected source repair from formal proof and comprehensive security. After that, wire the reviewed contribution format into Yukon and test one external contributor end to end.
