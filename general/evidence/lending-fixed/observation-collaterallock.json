@@ -1,0 +1,12 @@
+{
+  "status": "proved",
+  "target_digest": "de5641118b55d20638925fd1a7386e336d45f54a161831d4fc7f66921e3daeb3",
+  "kernel_checked": true,
+  "target_matched": true,
+  "independent_kernels": [
+    "nanoda",
+    "con-ron"
+  ],
+  "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+  "contract_correspondence": "not_proved"
+}

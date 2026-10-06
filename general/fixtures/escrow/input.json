@@ -1,0 +1,9 @@
+{
+  "id": "MilestoneEscrow",
+  "intent": "Payers escrow funds for milestone work, and the escrow must hold them safely: funds released for a payer must never exceed what that payer deposited, and other payers must keep their deposited funds available in the escrow at all times. Identify contract violations and missing assumptions; do not assume away malicious callers.",
+  "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+  "approved_assumptions": [
+    "Analyze sequential, atomic successful/reverted transactions.",
+    "Release calls pay the caller; callback recipients may reject transfers."
+  ]
+}

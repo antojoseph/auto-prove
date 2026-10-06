@@ -1,0 +1,6 @@
+{
+  "evidence_kind": "model_counterexample",
+  "property_id": "OtherClaimAvailability",
+  "proof": "by\n  intro total\n  have hclaim := total { collateral := fun _ => 10, debt := fun _ => 0, pool := 10 } 1 0 5 (by decide) (by decide) (by decide) (by decide) (by decide)\n  exact absurd hclaim (by decide)",
+  "reasoning": "Over arbitrary states the pool can back honest claims only under a reachability invariant. Concrete counterexample: pool 10, borrower collateral 10, honest collateral 10, no debt; borrower withdraws 5 (guard passes since 0 \u2264 (10-5)/2), leaving pool 5 below the honest claim 10. The target is invalid as stated over arbitrary states; a sound version needs a reachability invariant."
+}

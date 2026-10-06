@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spec.prove — Transaction-grounded specification review — Yukon challenge pilot</title>
+<meta name="description" content="Staged Yukon challenge: transaction-grounded specification review for smart contracts. Recorded evidence ledger and client-side contribution composer; no hosted checking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <a class="wordmark" href="https://www.yukon.org">Yukon</a>
+    <span class="crumb">/ <b>spec.prove</b></span>
+    <div class="spacer"></div>
+    <div class="chips" id="nav-chips"></div>
+    <a href="https://www.yukon.org">All challenges</a>
+    <a href="#ledger">Leaderboard</a>
+    <a href="#participate">Participate</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap hero-inner">
+    <div class="eyebrow">Internal challenge pilot · AI / smart-contract specifications</div>
+    <h1 class="title">spec<span class="dot">.</span>prove</h1>
+    <div class="byline">by <b>antojoseph</b> — <span id="hero-fullname"></span></div>
+    <div class="statusline" id="hero-stats"></div>
+    <p class="tagline" id="hero-tagline"></p>
+    <p class="subtle" id="hero-score"></p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#participate">Participate</a>
+      <a class="btn" href="#challenge">How it works</a>
+      <a class="btn" href="#ledger">Evidence ledger</a>
+    </div>
+    <div class="invariant" id="hero-invariants"></div>
+    <p class="hero-note" id="hero-meta"></p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section id="records">
+    <div class="section-label">Records</div>
+    <div class="records" id="records-cards"></div>
+    <div class="latest-move" id="records-latest"></div>
+  </section>
+
+  <section id="ledger">
+    <div class="section-label">Leaderboard · recorded evidence</div>
+    <h2>Evidence ledger</h2>
+    <p class="lead">Verified rows from the maintainer registry and the protected verifier. Recorded, credential-free results reproduced by the pinned CI job; every row references the frozen digests it was produced against.</p>
+    <div class="ledger-stats" id="ledger-stats"></div>
+    <div class="charts">
+      <div class="chart-panel">
+        <h4>LendingPool · collateral coverage by replay step</h4>
+        <div id="chart-lending"></div>
+        <div class="chart-legend" id="legend-lending"></div>
+      </div>
+      <div class="chart-panel">
+        <h4>MilestoneEscrow · released vs deposited by replay step</h4>
+        <div id="chart-escrow"></div>
+        <div class="chart-legend" id="legend-escrow"></div>
+      </div>
+    </div>
+    <p class="fig-caption" id="ledger-caption"></p>
+    <table class="ledger">
+      <thead><tr><th>Author</th><th>Evidence</th><th>Kind</th><th>Result</th><th>Checked by</th><th>Bound artifact</th><th>Recorded</th></tr></thead>
+      <tbody id="ledger-rows"></tbody>
+    </table>
+    <p class="subtle" id="ledger-note"></p>
+    <div class="card" style="margin-top:18px">
+      <h3>Independent verification report</h3>
+      <p class="subtle">Step-1 deliverable of the design handoff: every expected outcome labeled confirmed, failed or not run, with the exact environment.</p>
+      <details><summary>Open the full report</summary><div class="inner md" id="report-body"></div></details>
+    </div>
+  </section>
+
+  <section id="challenge">
+    <div class="section-label">How it works</div>
+    <h2>The challenge</h2>
+    <p class="lead" id="challenge-objective"></p>
+    <div class="grid two">
+      <div class="card">
+        <h3>Adversarial revision loop</h3>
+        <ol class="loop-list" id="challenge-loop"></ol>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Submission surface</h3>
+          <p class="subtle">Solvers on Yukon improve the two generation prompts; the harness, snapshot policy, checker and grading rubric stay protected.</p>
+          <div id="challenge-editable"></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Rubric cases</h3>
+          <div id="challenge-rubric"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rewards">
+    <div class="section-label">Review &amp; reward rules</div>
+    <h2>Credit rules</h2>
+    <p class="lead">Credit follows reviewed evidence, never votes or account count. Finding acceptance and payout authorization are separate steps; no payout is implemented.</p>
+    <div class="grid two">
+      <div class="card">
+        <h3>What earns credit</h3>
+        <div id="rewards-classes"></div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>What never earns credit</h3>
+          <ul id="rewards-never"></ul>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Bounded budget</h3>
+          <p class="subtle" id="rewards-budget"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="participate">
+    <div class="section-label">Participate</div>
+    <h2>Set up and run</h2>
+    <p class="lead" id="participate-blockers"></p>
+    <div class="terminal">
+      <div class="terminal-head">spec.prove — setup</div>
+      <div class="terminal-body" id="participate-terminal"></div>
+    </div>
+    <div class="grid three" id="participate-cards"></div>
+    <div class="card" style="margin-top:18px">
+      <h3>Pinned prerequisites</h3>
+      <p class="subtle">Python 3.9+, Anvil/Cast 1.7.1, Solidity 0.8.28, and (for the Lean gates) Docker. No model account, external chain, wallet or RPC endpoint is used at any point. Replays run on a disposable local Anvil that the runner starts itself.</p>
+      <div id="participate-commands"></div>
+    </div>
+  </section>
+
+  <section id="compose" class="composer">
+    <div class="section-label">Try it · contribution composer</div>
+    <h2>Compose a transaction contribution</h2>
+    <p class="lead">Build a <code>transaction-attack-v1</code> submission in your browser. Schema checks and digests are computed client-side; the trusted runner remains the CLI. <b>Nothing you type here leaves your browser</b> — this page accepts no submissions.</p>
+    <div class="chips" id="composer-demo-select"></div>
+    <div class="result-grid" style="margin-top:16px">
+      <div class="card">
+        <h3>1 · Challenge version &amp; policy</h3>
+        <p class="subtle" id="composer-policy-note"></p>
+        <div class="field"><label>Operational policy (JSON)</label><textarea id="composer-policy" spellcheck="false"></textarea></div>
+        <div class="kv"><b>policy digest</b><code id="composer-policy-digest">…</code></div>
+        <div class="kv"><b>snapshot digest</b><code id="composer-snapshot-digest">…</code></div>
+        <ul class="errors" id="composer-policy-errors"></ul>
+        <ul class="warnings" id="composer-policy-warnings"></ul>
+      </div>
+      <div class="card">
+        <h3>2 · Your finding &amp; trace</h3>
+        <div class="row-inline">
+          <div class="field"><label>Contributor attribution</label><input id="f-contributor" spellcheck="false"></div>
+          <div class="field"><label>Attacked requirement</label><select id="f-requirement"></select></div>
+        </div>
+        <div class="field"><label>Reasoning — the claimed connection</label><textarea id="f-reasoning" spellcheck="false"></textarea></div>
+        <div class="kv"><b>contract</b><code id="t-contract"></code></div>
+        <div class="field"><label>Constructor arguments (comma-separated)</label><input id="t-constructor" placeholder="e.g. $account:0, 100" spellcheck="false"></div>
+        <table class="trace-table"><thead><tr><th class="narrow">Account</th><th>Function</th><th>Arguments (csv)</th><th class="narrow">Value wei</th><th class="narrow"></th></tr></thead><tbody id="t-actions"></tbody></table>
+        <button class="add" id="t-add-action">Add action</button>
+        <table class="trace-table" style="margin-top:16px"><thead><tr><th>Label</th><th>View function</th><th>Arguments (csv)</th><th class="narrow"></th></tr></thead><tbody id="t-observations"></tbody></table>
+        <button class="add" id="t-add-observation">Add observation</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>3 · Validate &amp; take it to the runner</h3>
+      <div class="outcome"><span id="composer-verdict"></span></div>
+      <ul class="errors" id="composer-submission-errors"></ul>
+      <ul class="warnings" id="composer-submission-warnings"></ul>
+      <div class="field"><label>Generated submission (JSON)</label><textarea id="composer-output" rows="13" spellcheck="false" readonly></textarea></div>
+      <div class="kv"><b>submission digest</b><code id="composer-submission-digest">…</code></div>
+      <div class="cmd-row" id="composer-command"></div>
+      <div class="row-inline" style="margin-top:10px">
+        <button class="add" id="composer-download">Download submission JSON</button>
+        <button class="add" id="composer-download-policy" style="display:none">Download policy JSON</button>
+      </div>
+      <p class="subtle" style="margin-top:12px">Browser checks are advisory and mirror the CLI validators; the maintainer-side runner is authoritative (intent-quote presence, Lean property existence and live replay are checked there). Acceptance requires a maintainer-reviewed requirement and a fresh trusted replay.</p>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="section-label">Limits</div>
+    <h2>What this is — and is not</h2>
+    <div class="grid two">
+      <div class="card">
+        <h3>Is</h3>
+        <ul class="subtle">
+          <li>An internal pilot of a transaction-grounded specification review loop, fully reproducible from the repository.</li>
+          <li>A staging page for the Yukon challenge: same objective, rules, scoring and evidence the hosted challenge will use.</li>
+          <li>Kernel-checked formal evidence (Lean, two independent kernels) plus concrete Anvil replays, separately labeled.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Is not</h3>
+        <ul class="subtle">
+          <li>A submission endpoint: no backend, no registry writes, no authenticated attribution.</li>
+          <li>Hosted checking: Anvil replay and Lean verification run only in the CLI/CI.</li>
+          <li>A security certificate, an English-fidelity proof, a model/EVM equivalence proof, or a payout mechanism.</li>
+          <li>Production creator approval: recorded decisions are internal-fixture reviews by the repo maintainer.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-cols">
+      <div class="col"><b>Yukon</b>
+        <a href="https://www.yukon.org">Platform</a>
+        <a href="https://www.yukon.org">All challenges</a>
+      </div>
+      <div class="col"><b>This challenge</b>
+        <a href="https://github.com/antojoseph/auto-prove/tree/general-intent-pipeline">Repository</a>
+        <a href="#ledger">Evidence ledger</a>
+        <a href="#rewards">Reward rules</a>
+      </div>
+      <div class="col"><b>Status</b>
+        <a href="#faq">Staged, not imported</a>
+        <a href="#compose">Read-only composer</a>
+      </div>
+    </div>
+    <p class="footer-note" id="footer-note"></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

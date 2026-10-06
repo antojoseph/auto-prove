@@ -1,0 +1,62 @@
+{
+  "digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "material": {
+    "version": "general-pipeline-v1",
+    "toolchain": "4.35.0-rc2",
+    "axioms": [
+      "propext",
+      "Quot.sound",
+      "Classical.choice"
+    ],
+    "input": {
+      "id": "MilestoneEscrow",
+      "intent": "Payers escrow funds for milestone work, and the escrow must hold them safely: funds released for a payer must never exceed what that payer deposited, and other payers must keep their deposited funds available in the escrow at all times. Identify contract violations and missing assumptions; do not assume away malicious callers.",
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "approved_assumptions": [
+        "Analyze sequential, atomic successful/reverted transactions.",
+        "Release calls pay the caller; callback recipients may reject transfers."
+      ]
+    },
+    "specification": {
+      "status": "supported",
+      "summary": "Developer-authored model for the MilestoneEscrow family: per-payer deposit and release accounting. The release guard checks only the payer deposit, mirroring the source; it does not subtract already-released amounts, so repeated releases of the same deposit remain possible in the model exactly as in the contract.",
+      "threat_model": [
+        "Sequential atomic transactions with success/revert outcome.",
+        "Any caller may invoke release and receive the payout; there is no seller registry.",
+        "Callback recipients may accept or reject ETH transfers."
+      ],
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties": [
+        {
+          "id": "EscrowDepositCredit",
+          "requirement": "A successful deposit credits exactly the deposited amount to the payer.",
+          "intent_basis": "Payers escrow funds for milestone work; deposit accounting must be exact.",
+          "statement": "∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount",
+          "explanation": "Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping."
+        },
+        {
+          "id": "ReleasedWithinDeposit",
+          "requirement": "Released funds for a payer must never exceed that payer's deposits.",
+          "intent_basis": "Funds released for a payer must never exceed what that payer deposited.",
+          "statement": "∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer amount → (releaseE s payer amount true).released payer ≤ (releaseE s payer amount true).deposited payer",
+          "explanation": "The intended protection stated over the model. The release guard omits the already-released amount, so this target is expected to be refutable; the concrete double-release attack demonstrates the same defect on chain."
+        }
+      ],
+      "assumptions": [
+        "Analyze sequential, atomic successful/reverted transactions.",
+        "Release calls pay the caller; callback recipients may reject transfers."
+      ],
+      "unresolved_questions": [
+        "The intent says released funds must reach the registered seller, but the contract has no seller registry; who may receive releases requires creator clarification and possibly a contract change.",
+        "The abstract model tracks per-payer accounting only; total pool coverage of all payers is not yet a formal target."
+      ],
+      "execution_gaps": [
+        "Tuple/array ABI results and multi-contract deployments remain outside the concrete replay runner."
+      ]
+    },
+    "model_source": "module\npublic import Std\n@[expose] public section\nnamespace AutoSpec\nstructure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s\nend AutoSpec\n",
+    "challenge_source": "module\npublic import Model\npublic section\nnamespace AutoSpec\ntheorem req_EscrowDepositCredit : ∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount := by sorry\ntheorem req_ReleasedWithinDeposit : ∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer amount → (releaseE s payer amount true).released payer ≤ (releaseE s payer amount true).deposited payer := by sorry\nend AutoSpec\n"
+  },
+  "creator_approval": "pending",
+  "contract_correspondence": "not_proved"
+}

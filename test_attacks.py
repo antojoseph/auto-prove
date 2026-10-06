@@ -3,9 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from general.core import digest, freeze, read
+from general.core import digest, freeze, read, validate_snapshot
 from general.attacks import (adjudicate, accept, regress, assess, policy_check,
                             submission_check, evaluate, expression)
+from general.review import propose, creator_review
 from general.evm import decode_scalar, validate_trace
 
 ROOT = Path(__file__).resolve().parent
@@ -170,6 +171,93 @@ class AttackTests(unittest.TestCase):
             path.write_text(__import__('json').dumps(payload))
             with self.assertRaisesRegex(ValueError,'Corrupt'):
                 regress(self.snapshot,registry,Path(folder)/'corrupt')
+
+
+class ReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.snapshot, self.policy, self.submission = fixtures()
+        self.draft = copy.deepcopy(self.policy); self.draft['requirements'][0]['review_status'] = 'pending'
+        self.decisions = {'version':'policy-review-v1', 'snapshot_digest':self.snapshot['digest'],
+                          'policy_digest':digest(self.draft), 'creator':'fixture-creator',
+                          'decisions':[{'requirement_id':'CollateralBacking', 'decision':'approved',
+                                        'reason':'Matches the intended withdrawal protection.'}]}
+
+    def proposal(self, folder):
+        return propose(self.snapshot, self.draft, Path(folder)/'proposal')
+
+    def test_proposal_requires_pending_requirements_and_shows_review_material(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaisesRegex(ValueError, 'pending review'):
+                propose(self.snapshot, self.policy, Path(folder)/'no')
+            packet = self.proposal(folder)
+            item = packet['review_items'][0]
+            self.assertEqual(item['intent_quote'], self.draft['requirements'][0]['intent_quote'])
+            self.assertEqual(item['lean_mapping']['property_id'], 'CollateralLock')
+            self.assertIn('statement', item['lean_mapping'])
+            self.assertEqual([f['label'] for f in item['observed_state_fields']], ['Debt', 'Collateral'])
+            self.assertEqual(packet['creator_approval'], 'pending')
+            self.assertFalse(packet['accepted'])
+            self.assertEqual(packet['decision_template']['decisions'][0]['requirement_id'], 'CollateralBacking')
+            self.assertTrue((Path(folder)/'proposal'/'review.html').exists())
+
+    def test_decisions_must_bind_to_the_proposed_policy(self):
+        with tempfile.TemporaryDirectory() as folder:
+            packet = self.proposal(folder)
+            for mutation in ('version', 'snapshot', 'policy', 'missing', 'unknown', 'reason'):
+                decisions = copy.deepcopy(self.decisions)
+                if mutation == 'version': decisions['version'] = 'other'
+                elif mutation == 'snapshot': decisions['snapshot_digest'] = '0'*64
+                elif mutation == 'policy': decisions['policy_digest'] = '0'*64
+                elif mutation == 'missing': decisions['decisions'] = []
+                elif mutation == 'unknown':
+                    decisions['decisions'] = decisions['decisions'] + [{'requirement_id':'Invented', 'decision':'approved', 'reason':'extra'}]
+                elif mutation == 'reason': decisions['decisions'][0]['reason'] = ''
+                with self.assertRaises(ValueError):
+                    creator_review(self.snapshot, packet, decisions, Path(folder)/'review')
+
+    def test_review_excludes_rejected_requirements_and_keeps_invariants(self):
+        with tempfile.TemporaryDirectory() as folder:
+            packet = self.proposal(folder)
+            decisions = copy.deepcopy(self.decisions)
+            decisions['decisions'][0]['decision'] = 'rejected'
+            record = creator_review(self.snapshot, packet, decisions, Path(folder)/'review')
+            self.assertEqual(record['rejected_requirements'], ['CollateralBacking'])
+            self.assertEqual(record['approved_policy']['requirements'], [])
+            self.assertEqual(record['creator_approval'], 'pending')
+            self.assertFalse(record['accepted'])
+            self.assertEqual(record['contract_correspondence'], 'not_proved')
+
+    def test_approved_policy_supports_the_full_contribution_loop(self):
+        with tempfile.TemporaryDirectory() as folder:
+            packet = self.proposal(folder)
+            record = creator_review(self.snapshot, packet, self.decisions, Path(folder)/'review')
+            reviewed = record['approved_policy']
+            self.assertEqual(reviewed['requirements'][0]['review_status'], 'approved')
+            submission = copy.deepcopy(self.submission)
+            submission['policy_digest'] = digest(reviewed)
+            with patch('general.attacks.replay', side_effect=mock_replay()):
+                result = adjudicate(self.snapshot, reviewed, submission, Path(folder)/'attack')
+                self.assertEqual(result['status'], 'demonstrated_spec_requirement_violation')
+                accepted = accept(self.snapshot, reviewed, submission, Path(folder)/'registry',
+                                  Path(folder)/'accept', 'contract_bug', 'reviewed fixture')
+                self.assertEqual(accepted['attack_acceptance'], 'accepted')
+                self.assertEqual(len(list((Path(folder)/'registry').glob('*.json'))), 1)
+
+
+class EscrowFixtureTests(unittest.TestCase):
+    def test_escrow_family_fixtures_validate(self):
+        snapshot = validate_snapshot(read(ROOT/'general/fixtures/escrow/snapshot.json'))
+        policy = read(ROOT/'general/fixtures/escrow/draft-policy.json')
+        policy_check(snapshot, policy)
+        self.assertTrue(all(r['review_status'] == 'pending' for r in policy['requirements']))
+        for name in ('attack-safe', 'attack-double-release', 'attack-other-payer'):
+            submission = read(ROOT/'general/fixtures/escrow'/(name + '.json'))
+            submission_check(snapshot, policy, submission)
+        for requirement in policy['requirements']:
+            self.assertIn(requirement['intent_quote'], snapshot['material']['input']['intent'])
+            if requirement['scope'] == 'spec':
+                ids = {p['id'] for p in snapshot['material']['specification']['properties']}
+                self.assertIn(requirement['property_id'], ids)
 
 
 if __name__ == '__main__': unittest.main()

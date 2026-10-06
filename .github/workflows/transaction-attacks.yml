@@ -1,0 +1,47 @@
+name: Live transaction-attack verification
+on:
+  push:
+    paths:
+      - 'general/**'
+      - 'test_attacks.py'
+      - 'scripts/verify_attacks.sh'
+      - '.github/workflows/transaction-attacks.yml'
+  pull_request:
+    paths:
+      - 'general/**'
+      - 'test_attacks.py'
+      - 'scripts/verify_attacks.sh'
+      - '.github/workflows/transaction-attacks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-attacks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+      - name: Install pinned Solidity 0.8.28 (checksum-verified)
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location \
+            https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.28+commit.7893614a \
+            --output "$RUNNER_TEMP/solc"
+          echo "9a0fb7e0db2c0641dbae1c5cc645dc686820c83af516226abb1c0a2f76636f25  $RUNNER_TEMP/solc" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/solc"
+          echo "AUTO_PROVE_SOLC=$RUNNER_TEMP/solc" >> "$GITHUB_ENV"
+      - name: Verify the live transaction-contribution loop
+        run: bash scripts/verify_attacks.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-attack-evidence
+          path: runs/reproduced-attacks-live-*/

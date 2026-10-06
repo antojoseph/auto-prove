@@ -1,5 +1,7 @@
 # Recorded generalized experiments
 
+See also [README-fixed-escrow.md](README-fixed-escrow.md) for the regenerated repaired-lending revision (kernel-checked observations and an exact-target refutation) and the MilestoneEscrow second-family evidence.
+
 Both inputs are synthetic. The proposer generated the Lean model and formal targets from source + English; no hand-authored family reference model was supplied. `gpt-6-sol` was used through Codex CLI 0.157.0. Usage files record completed invocations; the timed-out vault revision has no completed usage record.
 
 - **Lending:** two live proposal/review rounds. The reviewer identified a collateral-withdrawal bug, a healthy-state precondition that omitted already-underwater withdrawals, and omitted callback behavior. The proposer strengthened the withdrawal target and expanded the callback abstraction. Independent rechecking supports **three exact-target counterexamples** and **one model observation**. Six agent-generated concrete replay records replayed on disposable Anvil chains, including both one-step and two-step collateral removal. Positive proof attempts remain inconclusive due to compiler errors and intentionally incomplete safety proofs. Lender accounting, repayment and more general callback behavior remain unresolved.

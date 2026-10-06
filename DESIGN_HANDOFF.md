@@ -1,6 +1,6 @@
 # Transaction-grounded specification review: design and handoff
 
-Status: **local draft implementation, published for review; live transaction verification incomplete.**
+Status: **local implementation with independently reproduced live transaction replay, creator-review records, a regenerated repaired-source revision with kernel-checked evidence, and a second contract family. Platform (Yukon) submission integration and public/agent-discovered evaluation remain unbuilt.**
 
 This document describes the design, what has been implemented, how another researcher or agent can inspect and test it, and what still needs building. It does not assert that the current code is production-ready or that any contract is secure.
 
@@ -63,35 +63,40 @@ An operational condition mapped to a Lean property is a reviewed interpretation 
 | File | Current responsibility |
 | --- | --- |
 | `general/attacks.py` | Policy/submission validation, bounded predicate evaluation, adjudication report, maintainer acceptance, exact-case deduplication and historical regressions |
+| `general/review.py` | Operational-policy proposals (all requirements pending), creator review packets showing English, intent quotation, probes, predicate, assumptions and Lean mapping, and recorded approve/reject decisions |
 | `general/evm.py` | Bounded trace validation, scalar ABI decoding and trusted state captures during replay |
-| `general/__main__.py` | `attack`, `accept-attack`, `regress-attacks`, and `run --attack-registry` commands |
+| `general/__main__.py` | `attack`, `accept-attack`, `regress-attacks`, `propose-policy`, `review-policy`, and `run --attack-registry` commands |
 | `general/pipeline.py` | Optional replay of accepted cases in every revision round; results passed to proposer/reviewer history |
-| `general/fixtures/attacks/` | Synthetic examples: existing requirement violation, incomplete specification/intent gap, and a source-patched comparison |
-| `test_attacks.py` | Fourteen unit tests for validation, adjudication and regression behavior; EVM replay is mocked |
+| `general/fixtures/attacks/` | Synthetic examples: existing requirement violation, incomplete specification/intent gap, a source-patched comparison, a draft policy and its creator decisions |
+| `general/fixtures/escrow/` | Second contract family (MilestoneEscrow): safe trace, real double-release failure, and an ambiguous intent requirement requiring creator clarification |
+| `general/evidence/lending-fixed/`, `general/evidence/escrow/` | Credential-free recorded evidence: regenerated repaired-lending snapshot, kernel-checked observations, exact-target refutations, preserved candidates/findings/proofs |
+| `test_attacks.py` | Nineteen unit tests for validation, adjudication, regression, creator-review and second-family fixture behavior; EVM replay is mocked |
 
 Acceptance reruns the scenario; it does not trust an uploaded report. Pending operational requirements cannot enter the accepted registry. Exact duplicate cases with different attribution or explanation share an identity and do not create multiple registry entries. This is limited deduplication, **not a solution to semantic duplicates, Sybil behavior or collusion**.
 
 `attack_acceptance: accepted` accepts a finding. The report still leaves contract `accepted: false`, `creator_approval: pending` and `contract_correspondence: not_proved`.
 
-## Verification completed and incomplete
+The creator-review path (`propose-policy` / `review-policy`) records explicit approve/reject decisions per requirement with reasons. A rejected requirement is excluded from the reviewed operational policy and retained in the review record; a fully rejected proposal produces no usable policy. Approving an operational requirement is an interpretation for transaction checking only — it is never contract approval, semantic approval, or a model/EVM equivalence claim.
 
-**Completed for this revision:**
+## Verification status
 
-```sh
-python3 -m unittest test_attacks test_general test_app test_engine
-```
+**Unit suite:** `python3 -m unittest test_attacks test_general test_app test_engine` — **54 tests pass** (35 original, 14 transaction-contribution tests, 5 creator-review and second-family tests; replay mocks where noted).
 
-Observed result: **49 tests passed** (35 existing tests and 14 new tests). New transaction tests use mocked replay results. This establishes selected application behavior, not successful EVM execution.
+**Live replay:** `bash scripts/verify_attacks.sh` runs eight credential-free stages on a disposable local Anvil: both original attack fixtures, acceptance with exact-case deduplication, original and source-patched regressions, stale-digest rejection before replay, an injected runtime failure that stays `inconclusive`, and the MilestoneEscrow family (safe trace, double-release failure, blocked pre-review acceptance, creator approve/reject, accepted case, unrepaired regression). The earlier `[Errno 1] Operation not permitted` failure did not reproduce on macOS arm64 with Anvil/Cast 1.7.1 and solc 0.8.28; it appears to have been specific to the previous execution environment.
 
-**Incomplete:** the attempted live local transaction replay returned `inconclusive` with `[Errno 1] Operation not permitted`. No successful live transaction validation was completed for this revision. Further execution was stopped and verification handed to the maintainer. Do not describe the new draft as end-to-end validated.
+**Docker verifier:** `python3 -m general.regressions --output runs/reproduced-general-gates` — all seven protected proof gates pass (real proof accepted; sorry, substituted target, custom axiom, equivalent-body replacement and meaning-changing definition rejected; genuine refutation accepted).
 
-The older recorded Lean and transaction evidence remains unchanged. It does not validate the new transaction contribution/registry implementation. Existing CI also needs to include `test_attacks.py` and a live integration job; the current general verifier workflow does not run this new test module.
+**Regenerated repaired-source revision** (`general/evidence/lending-fixed/`): frozen revision `cbc67ee8…`; full-file verify honestly `rejected` (four real proofs plus an intentional `sorry` on the open `OtherClaimAvailability` target); individually kernel-checked: four `supported_model_observation` results including the repaired `CollateralLock` and `BorrowCap`, plus a `supported_model_counterexample` refuting `OtherClaimAvailability` over arbitrary states. The historical regression against the revision reports `requires_mapping_review` (mapping changed), resolved by a recorded creator review of the revised policy; the concrete replay of the original accepted case no longer demonstrates the violation.
+
+**Second family** (`general/fixtures/escrow/`): safe trace `not_demonstrated`; double-release `demonstrated_spec_requirement_violation` (Released 200 over Deposited 100, balance drained below the other payer's backing); ambiguous intent requirement demonstrated as `proposed` with acceptance blocked until the creator decision (recorded approve/reject); accepted case replays as `still_violates_original_requirement` on the unrepaired snapshot; kernel-checked `supported_model_counterexample` for `ReleasedWithinDeposit`.
+
+**Incomplete:** hosted Yukon submission mode, authenticated attribution, agent-discovered (non-developer) findings, semantic-duplicate review in practice, hostile-input live review beyond the recorded unit coverage, and multi-contract/callback transaction coverage. The general verifier workflow now includes `test_attacks.py`, and `transaction-attacks.yml` runs the live loop in CI with pinned runtimes.
 
 ## How to inspect and test
 
 Use the branch containing this handoff, currently `general-intent-pipeline` in `antojoseph/auto-prove`. Start with this document, `GENERAL_PIPELINE.md`, `AGENTS.md`, then the files listed above. Use a fresh output directory for every command; existing evidence should not be overwritten.
 
-The unit suite needs Python 3.9+ and no model account. Live replay needs Anvil and Cast **1.7.1** plus Solidity **0.8.28**. Put them on PATH, or set `AUTO_PROVE_ANVIL`, `AUTO_PROVE_CAST`, and `AUTO_PROVE_SOLC` to their installed paths. Installation references are in `README.md` and `GENERAL_PIPELINE.md`. No external chain, wallet or model account is required for the following fixture checks.
+The unit suite needs Python 3.9+ and no model account. Live replay needs Anvil and Cast **1.7.1** plus Solidity **0.8.28**. Put them on PATH, or set `AUTO_PROVE_ANVIL`, `AUTO_PROVE_CAST`, and `AUTO_PROVE_SOLC` to their installed paths. Installation references are in `README.md` and `GENERAL_PIPELINE.md`. No external chain, wallet or model account is required for the following fixture checks. `bash scripts/verify_attacks.sh` runs every stage below with assertions; each stage can also be run by hand.
 
 ### 1. Existing requirement violation
 
@@ -160,80 +165,86 @@ Verify stale snapshot/policy digests are rejected before replay; contributors ca
 
 If a formal mapping changes while the selected concrete regression no longer fails, the result should require mapping review. Changing original intent or approved assumptions should require a separate reviewed challenge scope rather than silently reusing the registry.
 
-These cases have unit coverage, but independent live/integration checks and hostile-input review remain necessary.
+These cases have unit coverage, and the stale-digest and runtime-failure cases are also asserted live by `scripts/verify_attacks.sh`. Independent hostile-input review beyond that coverage remains necessary.
+
+### 6. Creator review records
+
+```sh
+python3 -m general propose-policy \
+  general/fixtures/attacks/snapshot.json general/fixtures/attacks/draft-policy.json \
+  --output runs/reproduced-policy-proposal
+python3 -m general review-policy \
+  general/fixtures/attacks/snapshot.json runs/reproduced-policy-proposal/proposal.json \
+  general/fixtures/attacks/creator-decisions.json --output runs/reproduced-policy-review
+```
+
+Expected: a review packet showing each requirement's English, intent quotation, observed state fields, predicate, assumptions and mapped Lean target; then a recorded approve/reject decision. The reviewed policy (`reviewed-policy.json`) is the operational policy used for the reviewed attack/acceptance chain; the record keeps `accepted: false` and `creator_approval: pending`.
+
+### 7. Second contract family: MilestoneEscrow
+
+```sh
+python3 -m general attack general/fixtures/escrow/snapshot.json general/fixtures/escrow/draft-policy.json \
+  general/fixtures/escrow/attack-safe.json --output runs/reproduced-escrow-safe   # exits 1: not_demonstrated
+python3 -m general attack general/fixtures/escrow/snapshot.json general/fixtures/escrow/draft-policy.json \
+  general/fixtures/escrow/attack-double-release.json --output runs/reproduced-escrow-double-release
+```
+
+Expected: the safe trace is `not_demonstrated`; the double release is `demonstrated_proposed_requirement_violation` while the requirement is pending review, and acceptance is blocked. `attack-other-payer.json` challenges the ambiguous registered-seller intent requirement the same way. Then run the propose/review flow for the escrow policy (approve `ReleaseWithinDeposit`, reject the proposed `OtherPayerBacking` reading), attack with the reviewed policy (`demonstrated_spec_requirement_violation`), accept, and re-run `regress-attacks` against the unrepaired snapshot (`still_violates_original_requirement`). `general/evidence/escrow/` holds the kernel-checked `ReleasedWithinDeposit` refutation.
+
+These are developer-authored demonstrations, not agent discoveries; they exercise the same contribution format and runner on a different contract family, including a case with no violation and a case requiring creator clarification.
 
 ## What still needs building and verification
 
 | Area | Remaining work |
 | --- | --- |
-| Operational-policy authoring | Agent-generated proposals plus creator review; stronger checks linking the operational condition to its Lean target and intended meaning |
+| Operational-policy authoring | Agent-generated proposals (the current drafts are developer/maintainer-authored); stronger checks linking the operational condition to its Lean target and intended meaning |
 | Public submission boundary | Protected snapshot/policy ownership, authenticated contributor identity, schema/API validation, size/rate limits and isolation review |
 | Transaction coverage | Multi-contract dependencies, callback participants, richer ABI observations and additional scenario/environment controls |
 | Formal connection | Link concrete state histories to generated models; keep exact Lean refutation and concrete observations distinct until that connection is established |
-| Verification | Successful live replay, original/patched comparisons, malformed inputs, concurrency/corruption cases, resource limits and reproducible CI evidence |
+| Verification | Malformed-input live runs beyond unit coverage, concurrency/corruption cases, resource limits, hostile-input review |
 | Regression governance | Reviewed requirement evolution, case migration, mapping changes and explicit decisions about deprecated requirements |
-| Yukon integration | Direct contribution format and benchmark runner, version-linked discussion links, hosted replay artifacts and acceptance workflow |
-| Rewards | Meaningful finding/reproduction/repair credit, semantic deduplication, payout review and analysis of collusion incentives |
-| Evaluation | Additional contract families, safe/unsafe cases, held-out requirements, false-positive measurement and cost/budget limits |
+| Yukon integration | Hosted transaction-contribution mode, authenticated attribution, version-linked discussion links, hosted replay artifacts and acceptance workflow (interim maintainer-mediated protocol documented in YUKON_CHALLENGE.md; platform import and auth remain blockers) |
+| Rewards | Written rules exist in REWARDS.md; semantic-duplicate review in practice, payout review with a live population, and collusion-incentive analysis remain |
+| Evaluation | Agent-discovered findings on additional contract families, safe/unsafe held-out cases, false-positive measurement and cost/budget limits |
 
 The existing Yukon manifest still accepts proposer/reviewer prompt changes. **Direct transaction contributions are local CLI artifacts; they are not yet a live Yukon submission mode.** No new platform integration, public challenge, voting system, reward allocation or payout has been implemented.
 
 ## What to do next, in order
 
-These are planned tasks, not completed work. Live verification is assigned to the maintainer or their chosen researcher; no additional execution is implied by this handoff.
+Status is recorded per step; earlier completed steps remain reproducible.
 
-### 1. Independently verify the current local loop
+### 1. Independently verify the current local loop — **completed 2026-10-05**
 
 **Owner:** maintainer / verification researcher.
 
 Run the commands in the inspection and testing section from a fresh checkout. Record the commit, runtime versions, command outcomes, receipts, state histories and requirement evaluations. Check both existing-specification and intent-gap examples, acceptance, duplicate handling, and original/source-patched regressions. Also verify that removing a requirement cannot erase its accepted case.
 
-**Deliverable:** a verification report with reproducible, credential-free evidence and a list of failures or inconclusive checks. Label each expected outcome confirmed, failed or not run. This is the immediate next task; the current 49 passing unit tests do not replace it.
+**Deliverable:** a verification report with reproducible, credential-free evidence and a list of failures or inconclusive checks. Label each expected outcome confirmed, failed or not run. **Recorded report:** `runs/reproduced-verification-2026-10-05/report.md` — every fixture outcome confirmed by live replay; the prior `Operation not permitted` failure did not reproduce. `scripts/verify_attacks.sh` now encodes the checks with assertions, and CI runs them.
 
-### 2. Fix discrepancies and make verification repeatable
+### 2. Fix discrepancies and make verification repeatable — **completed 2026-10-05**
 
-**Owner:** implementation engineer, with the verification researcher reviewing results.
+No discrepancies were found in step 1. `test_attacks.py` is included in `general-verifier.yml`; `transaction-attacks.yml` runs `scripts/verify_attacks.sh` as a model-free live-integration job with pinned Anvil/Cast 1.7.1 and checksum-verified solc 0.8.28. Infrastructure failures remain `inconclusive` and are asserted distinct from rejected contributions.
 
-Fix issues discovered in step 1 without changing the original requirement merely to make a case pass. Add meaningful regression coverage for those issues. Include `test_attacks.py` in CI and add a model-free integration job with pinned replay dependencies. Ensure infrastructure failures remain distinguishable from rejected contributions.
+### 3. Complete creator review and specification revision — **completed for the internal fixture path**
 
-**Deliverable:** a fresh checkout reproduces the reviewed outcomes, and CI saves the evidence needed to inspect failures. Historical evidence remains preserved.
+The proposal → creator decision → concrete evidence → revision chain is implemented (`propose-policy` / `review-policy`) and exercised end to end on the internal fixture: reviewed policy → live attack → accepted case → regenerated repaired-source revision (frozen, kernel-checked observations and refutation recorded in `general/evidence/lending-fixed/`) → historical regression reporting `requires_mapping_review` → recorded creator review of the revised mapping → final concrete attack `not_demonstrated`. Model observations, concrete requirement failures and exact Lean refutations remain separately labeled. The decisions recorded so far are internal-fixture reviews by the repo maintainer; **they do not constitute production creator approval of any contract** — a real creator must record their own decisions per challenge.
 
-### 3. Complete creator review and specification revision
+### 4. Add direct contributions to an internal Yukon challenge — **local protocol documented; hosted mode blocked; staging site live**
 
-**Owner:** specification engineer and challenge creator.
+An interim maintainer-mediated protocol that works with the current platform is documented in YUKON_CHALLENGE.md (discussion entry → maintainer replay → published receipts and decision). A Yukon-style challenge staging page is live at https://auto-prove-challenge.vercel.app (`web/`): objective, rules, scoring, rewards, the evidence ledger, and a client-side contribution composer whose digests match the CLI. The hosted mode needs a manifest/schema change, platform authentication and registry import; local CLI discovery returns missing/invalid Yukon authentication, so the deliverable (one independent external contributor end to end) remains open and platform-blocked.
 
-Build the missing path from source and English intent to proposed operational policies. Show the creator the requirement, intent quotation, assumptions, observed state fields, predicate and any Lean mapping before approval. Record decisions and create a new frozen version after a meaning change. For the source-patched example, regenerate and review the formal model and targets; the current fixture only isolates concrete replay behavior.
+### 5. Test transfer and useful diversity — **second family completed with developer fixtures; agent-discovered diversity open**
 
-**Deliverable:** one reviewed case passes through proposal, concrete evidence, creator decision and specification revision. Its original regression survives into the new version. Model observations, concrete requirement failures and exact Lean refutations remain separately labeled.
+The MilestoneEscrow family runs through the same contribution format and runner with all three case types: no violation demonstrated (`attack-safe`), a real requirement failure (double release, accepted and surviving regression), and a creator-clarification case (ambiguous registered-seller intent, demonstrated as `proposed`, acceptance blocked, approve/reject decision recorded). All demonstrations are developer-authored and kept separate from agent discoveries; inviting independently operated agents/model families on held-out cases remains open.
 
-### 4. Add direct contributions to an internal Yukon challenge
+### 6. Define monetary credit before a rewarded public pilot — **rules written; pilot not run**
 
-**Owner:** Yukon integration engineer and challenge maintainer.
-
-Add a transaction-contribution mode alongside the existing prompt-improvement benchmark. The hosted runner must obtain the snapshot and policy from the maintainer, authenticate attribution through the platform, enforce input and resource limits, and publish version-linked evidence. Connect accepted findings to the maintainer-owned registry and discussion entry. Document how contributors obtain the current challenge version and submit an artifact.
-
-**Deliverable:** one independent contributor submits through Yukon, receives a reproducible result, and can inspect the evidence and acceptance decision. Rejected or inconclusive entries remain visible with their reasons. No automatic monetary payout is required for this first internal test.
-
-### 5. Test transfer and useful diversity
-
-**Owner:** research team.
-
-Add at least one different contract family using the same contribution format and runner. Include cases where no violation should be demonstrated, cases with a real requirement failure, and cases requiring creator clarification. Invite a small set of independently operated agents or model families. Track distinct supported findings, false objections, unresolved requirements, time/cost, and survival of historical cases.
-
-**Deliverable:** evidence that the mechanism transfers beyond the public lending fixture. Keep developer-authored demonstrations separate from agent discoveries. Evaluate prompt improvements on held-out cases rather than rewarding memorization of the public examples.
-
-### 6. Define monetary credit before a rewarded public pilot
-
-**Owner:** challenge maintainer and Yukon rewards team.
-
-Specify which reviewed contributions earn discovery, independent reproduction or repair credit. Define handling for copied findings, semantically equivalent cases, multiple accounts, shared contributions and disputes. Keep votes useful for prioritizing review; they must not override a valid counterexample or decide formal correctness. Separate finding acceptance from payout authorization.
-
-**Deliverable:** written reward rules, reviewed failure scenarios, a bounded test budget and an auditable acceptance-to-reward record. Exact-case deduplication alone is insufficient for this step.
+Written rules exist in REWARDS.md: credit classes and conditions, semantic-duplicate and multi-account handling, dispute procedure, bounded test budget, and an auditable acceptance-to-reward record. Reviewing the rules against a live adversarial population, and any actual payout, remain open. No payout has been implemented or authorized.
 
 ### Later scope
 
 After the internal milestone, extend multi-contract and callback scenarios, richer observations, formal model/execution connections and reviewed requirement migration. A public pilot should have held-out evaluation, tested submission isolation and clear limits on its claims. Broad contract support and comprehensive security certification are not prerequisites for a narrowly scoped internal test, and are not established by it.
 
-## First acceptance milestone
+## First acceptance milestone — **reproduced 2026-10-05**
 
-An independent reviewer can reproduce both types of requirement violation, accept one reviewed finding, recover its saved case in a fresh process, show that a specification change cannot hide it, and distinguish a selected source repair from formal proof and comprehensive security. After that, wire the reviewed contribution format into Yukon and test one external contributor end to end.
+An independent reviewer can reproduce both types of requirement violation, accept one reviewed finding, recover its saved case in a fresh process, show that a specification change cannot hide it, and distinguish a selected source repair from formal proof and comprehensive security. All of these are reproduced by `scripts/verify_attacks.sh` and the recorded revision evidence; the remaining milestone clause is wiring the reviewed contribution format into a hosted Yukon mode and testing one external contributor end to end, which stays platform-blocked (see YUKON_CHALLENGE.md).

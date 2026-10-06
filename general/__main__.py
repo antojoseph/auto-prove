@@ -6,6 +6,7 @@ from .backend import verify
 from .pipeline import run, evidence
 from .evm import replay
 from .attacks import adjudicate, accept, regress
+from .review import propose, creator_review
 
 
 def main():
@@ -29,6 +30,10 @@ def main():
             p.add_argument('--reason', required=True)
     p = sub.add_parser('regress-attacks'); p.add_argument('snapshot'); p.add_argument('--registry', required=True)
     p.add_argument('--output', required=True)
+    p = sub.add_parser('propose-policy'); p.add_argument('snapshot'); p.add_argument('policy')
+    p.add_argument('--output', required=True)
+    p = sub.add_parser('review-policy'); p.add_argument('snapshot'); p.add_argument('proposal')
+    p.add_argument('decisions'); p.add_argument('--output', required=True)
     args = parser.parse_args()
     try:
         if args.command == 'run':
@@ -51,6 +56,15 @@ def main():
         elif args.command == 'regress-attacks':
             result = regress(read(args.snapshot), args.registry, args.output)
             print(result['status']); return 0 if result['status'] == 'passed_replay' else 1
+        elif args.command == 'propose-policy':
+            propose(read(args.snapshot), read(args.policy), args.output)
+            print('operational policy proposed; creator review pending')
+        elif args.command == 'review-policy':
+            snapshot = read(args.snapshot); packet = read(args.proposal)
+            if packet.get('version') != 'policy-proposal-v1': raise ValueError('Not a policy proposal packet')
+            record = creator_review(snapshot, packet, read(args.decisions), args.output)
+            print('creator review recorded: ' + str(len(record['approved_policy']['requirements'])) + ' approved, '
+                  + str(len(record['rejected_requirements'])) + ' rejected; contract approval remains pending')
         else:
             snapshot = validate_snapshot(read(args.snapshot))
             result = evidence(snapshot, read(args.finding), args.output)

@@ -1,0 +1,6 @@
+{
+  "evidence_kind": "model_observation",
+  "observation_statement": "\u2200 (s : State) (who amount : Nat), depositAllowed s who amount \u2192 (deposit s who amount).collateral who = s.collateral who + amount",
+  "proof": "by\n  intro s who amount allowed\n  unfold deposit\n  rw [if_pos allowed]\n  show (put s.collateral who (s.collateral who + amount)) who = s.collateral who + amount\n  have hput : (put s.collateral who (s.collateral who + amount)) who = s.collateral who + amount := by simp [put]\n  exact hput",
+  "reasoning": "A successful deposit credits exactly the deposited amount to the caller collateral mapping."
+}

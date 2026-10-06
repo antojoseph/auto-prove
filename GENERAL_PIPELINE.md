@@ -49,6 +49,17 @@ python3 -m general replay general/fixtures/LendingPool.json \
 
 This developer-authored transaction fixture demonstrates: fund the pool, deposit 100 wei, borrow 50 wei, withdraw 100 wei, and observe zero remaining collateral against 50 wei debt. It supplies a concrete contract bug example. It is not itself an AI-generated attack or proof that a specification is complete.
 
+## Transaction contributions, creator review and regressions
+
+Version-bound attack submissions (`transaction-attack-v1`) replay against a frozen snapshot and a maintainer-owned operational policy; see [DESIGN_HANDOFF.md](DESIGN_HANDOFF.md) for the full inspection and testing sequence and `scripts/verify_attacks.sh` for the asserted live checks (including the MilestoneEscrow second family). The creator-review path records explicit approve/reject decisions before a requirement can be attacked or accepted:
+
+```sh
+python3 -m general propose-policy <snapshot> <draft-policy> --output runs/proposal
+python3 -m general review-policy <snapshot> runs/proposal/proposal.json <decisions> --output runs/review
+```
+
+`accept-attack` refuses pending requirements; a rejected requirement is excluded from the reviewed policy. Approving an operational requirement is an interpretation for transaction checking only — never contract approval or a model/EVM equivalence claim. Accepted cases persist as historical regressions (`regress-attacks`), surviving specification changes; a repaired source with a changed mapping yields `requires_mapping_review` until the creator records a review of the new mapping. Credit rules are drafted in [REWARDS.md](REWARDS.md); no payout is implemented.
+
 ## Fresh model-generated specifications
 
 Use your own authenticated Codex CLI (tested with 0.157.0), and choose a model available to that account. The commands send the input source and intent to your model provider. The original generalized experiments used `gpt-6-sol`; no account settings or credentials are included here.
@@ -98,3 +109,5 @@ A prize leaderboard needs a meaningful evaluation corpus: previously unseen cont
 ## Recorded generalization evidence
 
 See [general/evidence/README.md](general/evidence/README.md) and its self-contained reports. The lending run has three independently checked target refutations and six agent-generated concrete replay records; it also retains failed proof attempts and unresolved lender requirements. The vault has six checked target proofs, a demonstrated abstraction limitation and a timed-out revision. The positive verdicts were independently rechecked after correcting the verifier's no-definition-hole policy. The 35 Python tests and seven checker regression cases pass. The internal semantic assessor and hosted benchmark account have not been validated/configured in these experiments.
+
+The repaired-lending revision and the MilestoneEscrow second family add recorded credential-free evidence (kernel-checked observations, exact-target refutations, creator-review records) under `general/evidence/lending-fixed/` and `general/evidence/escrow/`; see their README. The 54 Python tests, the seven checker regression cases and the eight-stage live transaction loop (`scripts/verify_attacks.sh`) pass as of 2026-10-05.

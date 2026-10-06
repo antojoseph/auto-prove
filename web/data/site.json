@@ -1,0 +1,812 @@
+{
+ "challenge": {
+  "name": "Intent-grounded smart-contract specifications (internal)",
+  "description": "Experimental AI-judged coverage proxy with frozen Lean targets and independent kernels. Not ready for prize payouts.",
+  "category": "AI / smart-contract specifications",
+  "direction": "+",
+  "status": "Internal pilot — staged for Yukon; registry import pending",
+  "objective": "Improve a reusable pipeline that receives Solidity source and English intent, generates meaningful security specifications, and supplies proofs, checked attacks, or explicit unresolved results. The same submission must work across new inputs without a bespoke family verifier.",
+  "editable_paths": [
+   "prompts/general_proposer.txt",
+   "prompts/general_reviewer.txt"
+  ],
+  "score_composition": "60% AI-assessed meaningful coverage / 40% formally supported coverage. Zero credit for unsupported coverage, unapproved assumptions that bypass an intended threat, vacuity or unrelated tautologies. The numeric score is an internal proxy, never an automatic payout rule.",
+  "rubric_cases": [
+   {
+    "input": "general/fixtures/LendingPool.json",
+    "criteria": [
+     {
+      "id": "BorrowLimit",
+      "text": "Model the source borrow guard and explicitly require total borrower debt to stay at most half collateral at a successful borrow."
+     },
+     {
+      "id": "CollateralWithdrawal",
+      "text": "Explicitly cover debt backing after withdrawal; do not remove this requirement, assume benign borrowers, or idealize a missing source guard. Discover the real source collateral withdrawal flaw or give an honest unresolved result."
+     },
+     {
+      "id": "AccountingAmbiguity",
+      "text": "Surface missing lender accounting / repayment / liquidation decisions and distinguish the creator intended safety requirements from assumptions."
+     }
+    ]
+   },
+   {
+    "input": "general/fixtures/OwnerVault.json",
+    "criteria": [
+     {
+      "id": "OwnerAuthorization",
+      "text": "State a meaningful formal rule that non-owner withdrawal cannot reduce funds, with the original source authorization check represented."
+     },
+     {
+      "id": "DepositCap",
+      "text": "Cover successful deposits through deposit() respecting the immutable cap. Do not claim all balance increases respect the cap: forced Ether is outside that function."
+     },
+     {
+      "id": "CallbackAssumptions",
+      "text": "Expose recipient callback / reentrancy, payout failure and forced Ether modeling limits without assuming away authorization requirements."
+     }
+    ]
+   }
+  ],
+  "rewards": {
+   "credit_classes": [
+    {
+     "class": "Discovery",
+     "rule": "First reviewed contribution demonstrating a violation of a maintainer-reviewed requirement (or exact frozen Lean target) on the current version, passing fresh trusted replay."
+    },
+    {
+     "class": "Reproduction",
+     "rule": "Independent replay of an accepted case from a distinct attribution and model family; never creates a second registry case."
+    },
+    {
+     "class": "Repair",
+     "rule": "A revision that keeps the original case, passes historical regression, re-reviews changed mappings, and weakens no other protection."
+    },
+    {
+     "class": "Interpretation",
+     "rule": "A creator-approved clarification resolving an ambiguous protection into a new approved operational requirement."
+    }
+   ],
+   "never_earns": [
+    "Copied or semantically equivalent findings (human review, not the dedup hash, decides)",
+    "Multiple accounts attributing the same discovery; Sybil and collusion void the credit",
+    "Attacks on stale digests, submitter-supplied predicates or RPC endpoints",
+    "Pending (unreviewed) requirements or runtime failures reported as violations",
+    "Specification changes that delete the attacked protection instead of fixing the defect"
+   ],
+   "budget": "Discovery: one accepted case per requirement per version. Reproduction: two independent attributions per case. Total: twenty credit-bearing contributions per version. No payout is implemented.",
+   "note": "Full rules: REWARDS.md in the repository. Finding acceptance and payout authorization are separate steps."
+  },
+  "participation": [
+   {
+    "step": "Run the loop yourself",
+    "body": "Clone the internal repo, install the pinned runtimes, and run scripts/verify_attacks.sh: the full eight-stage live loop replays on a disposable local Anvil. No model account needed."
+   },
+   {
+    "step": "Compose a transaction contribution",
+    "body": "Use the composer below to build a transaction-attack-v1 submission: schema-checked in your browser, digests computed client-side. Download it and run the CLI to obtain trusted receipts. This site accepts no submissions — the maintainer registry is CLI-only."
+   },
+   {
+    "step": "Submit on Yukon",
+    "body": "Once imported, solvers submit prompt improvements via the Yukon CLI (editable proposer/reviewer prompts). Transaction contributions follow the interim maintainer-mediated protocol: post the artifact to the version-linked discussion entry; the maintainer replays it and publishes receipts plus the acceptance decision."
+   }
+  ],
+  "blockers": "Hosted Yukon import needs platform authentication and registry coordination. Until then this page stages the challenge: the checking machinery is fully reproducible from the internal repository.",
+  "loop": [
+   "Creator supplies contract source, English intent and approved assumptions",
+   "Agents propose explicit requirements and a formal model",
+   "Contributors submit transaction sequences challenging a requirement",
+   "Trusted runner replays on a disposable local chain",
+   "Creator reviews the operational interpretation before acceptance",
+   "Accepted findings persist across revisions as regression cases"
+  ]
+ },
+ "meta": {
+  "title": "Intent-grounded contract specification review",
+  "repo": "antojoseph/auto-prove",
+  "branch": "general-intent-pipeline",
+  "commit": "6243add",
+  "generated": "2026-10-05",
+  "tools": {
+   "python": "3.9.6",
+   "anvil": "1.7.1",
+   "cast": "1.7.1",
+   "solc": "0.8.28+commit.7893614a",
+   "lean_verifier": "Lean 4.35.0-rc2 (Docker, nanoda + con-ron)"
+  },
+  "invariants": {
+   "accepted": false,
+   "creator_approval": "pending",
+   "contract_correspondence": "not_proved"
+  },
+  "scope_note": "Synthetic fixtures and recorded evidence only. This site is a read-only explorer: it hosts no checking, accepts no submissions, and proves no security."
+ },
+ "verification": {
+  "report_md": "# Independent verification of the local transaction-contribution loop\n\nVerification date: 2026-10-05. Performed per DESIGN_HANDOFF.md, step 1 of \"What to do next, in order\".\n\n## Environment\n\n| Item | Value |\n| --- | --- |\n| Repository | `antojoseph/auto-prove`, branch `general-intent-pipeline`, commit `6243add` (\"Document prioritized next steps and completion criteria\"), clean worktree |\n| Host | macOS (darwin, arm64), Rosetta 2 installed (needed for amd64 solc static build) |\n| Python | 3.9.6 |\n| Anvil | 1.7.1 (Commit 4072e48705af9d93e3c0f6e29e93b5e9a40caed8) |\n| Cast | 1.7.1 (same commit) |\n| solc | 0.8.28+commit.7893614a, static macosx-amd64 build from binaries.soliditylang.org, sha256 `81515b0e53deaa266d549545ccaac0a5a96e6d4e8201c77f673b2c710976d9ea` (matches published list.json); supplied via `AUTO_PROVE_SOLC` since no solc is on PATH |\n| Model account / RPC | none used; all checks are credential-free |\n\nAll commands were run from a fresh checkout state in `escrow-autoformalization`. Every output directory is a fresh `runs/reproduced-*` directory; no recorded evidence was modified.\n\n## Results\n\n### Unit suite\n\nCommand: `python3 -m unittest test_attacks test_general test_app test_engine`\n\n**Confirmed.** Ran 49 tests, all OK (0.316 s). The 14 `test_attacks` tests cover: stale snapshot/policy digest rejection, submitter-supplied predicate/RPC rejection, typed bounded predicates, probe/quote/target validation, malformed trace rejection, missing-history and missing-call inconclusiveness, intermediate-violation survival after later recovery, pending-intent-requirement review status, safe-execution/failed-replay non-acceptance, verified-state-not-attacker-observation adjudication, deduplication of attribution/reasoning variants, and registry corruption / changed-intent rejection, including retention of an accepted case after its formal target is removed.\n\n### 1. Existing requirement violation (live)\n\nCommand: `python3 -m general attack general/fixtures/attacks/snapshot.json general/fixtures/attacks/policy.json general/fixtures/attacks/withdraw-collateral.json --output runs/reproduced-attack-existing`\n\n**Confirmed.** Live replay on a disposable local Anvil: `status: demonstrated_spec_requirement_violation`, `attack_acceptance: pending`, exit 0.\n\n- Snapshot digest: `d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56`\n- Replay: `replayed` on local Anvil; deterministic contract address `0x5fbdb2315678afecb367f032d93f642f64180aa3`; 4 transactions (fund 100 wei, `deposit() 100`, `borrow(50)`, `withdraw(100)`), each with status, transaction hash and gas used; 5 per-step state frames; final contract balance 50 wei.\n- `CollateralBacking` checks per step: steps 0-3 satisfied; **step 4 violated** (`Debt: 50, Collateral: 0`), matching the recorded expectation.\n- Scope label preserved: \"concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof\".\n\n**Note:** the handoff's incomplete item — live replay returning `inconclusive` with `[Errno 1] Operation not permitted` — did **not** reproduce in this environment. Live transaction replay succeeded for every command below. That failure appears to have been specific to the previous execution environment, not the code.\n\n### 2. Incomplete specification versus intent (live)\n\nCommand: `python3 -m general attack general/fixtures/attacks/weak-snapshot.json general/fixtures/attacks/weak-policy.json general/fixtures/attacks/intent-gap.json --output runs/reproduced-attack-intent`\n\n**Confirmed.** `status: demonstrated_intent_requirement_violation`, `attack_acceptance: pending`, exit 0. `BorrowLimit -> not_demonstrated` (no violation observed); `CollateralBacking -> demonstrated_violation` at step 4. Actual probe values and the original intent quotation were inspected, not just the status label. The fixture's `approved` operational status remains an internal developer-authored example, not creator approval.\n\n### 3. Maintainer acceptance and exact-case deduplication (live)\n\nCommand: `python3 -m general accept-attack ... --registry runs/reproduced-accepted-cases --category contract_bug --reason 'Internal fixture: reviewed explicit withdrawal requirement and replay evidence.' --output runs/reproduced-attack-acceptance`\n\n**Confirmed.** Fresh replay ran; `attack_acceptance: accepted`; exactly one case file in the registry: `a16ab5a533f0aebfe4c4a34efddd349b7c454d256da66f71067bf97f739d21b2.json`. The saved case retains origin snapshot digest, requirement text, intent quotation and category.\n\nDeduplication: re-ran `accept-attack` with a different contributor name and different reasoning, same trace and requirement, fresh output directory `runs/reproduced-attack-dedup`. Result: `attack_acceptance: duplicate`, registry still contains exactly **one** case. Exact-case deduplication confirmed; this is not semantic deduplication (unchanged limitation).\n\nInvariants after acceptance: `accepted: false`, `creator_approval: pending`, `contract_correspondence: not_proved`. **Confirmed** in all outputs.\n\n### 4. Original and source-patched regressions (live)\n\nCommand (original): `python3 -m general regress-attacks general/fixtures/attacks/snapshot.json --registry runs/reproduced-accepted-cases --output runs/reproduced-regress-original`\n\n**Confirmed.** Output `needs_attention`, case status `still_violates_original_requirement`, `mapping_changed: false`, intentional nonzero exit (exit 1). The case was recovered from the saved registry in a fresh process.\n\nCommand (source-patched): `python3 -m general regress-attacks general/fixtures/attacks/fixed-source-snapshot.json --registry runs/reproduced-accepted-cases --output runs/reproduced-regress-source-patched`\n\n**Confirmed.** Case status `passed_replay`, exit 0, `mapping_changed: false`. Receipts and state history show the repaired withdrawal behavior for this selected case. As documented, the source-patched fixture preserves the old formal specification; the pass is **not** a regenerated model, checked proof, proof of correspondence, or evidence of general security.\n\n### 5. Negative and revision checks\n\n- **Live stale-digest rejection confirmed:** a submission with a tampered `snapshot_digest` (64 zeros) was rejected before replay with `Error: Attack submission addresses a different snapshot`, exit 1. Output: `runs/reproduced-attack-stale`.\n- Pending requirements cannot be accepted, submitter-supplied predicates/RPC rejected, incomplete observations inconclusive, intermediate violations survive later recovery, attribution variants deduplicate, and removing an attacked formal property retains its historical regression: **confirmed via the 14 passing `test_attacks` unit tests** (listed above), not by separate live runs.\n\n## Outcome summary\n\n| Expected outcome (handoff) | Result |\n| --- | --- |\n| 49 unit tests pass | Confirmed |\n| Existing requirement violation demonstrated, acceptance pending | Confirmed (live) |\n| Intent-gap: BorrowLimit not_demonstrated, CollateralBacking demonstrated_violation | Confirmed (live) |\n| Acceptance creates one registry case, `attack_acceptance: accepted` | Confirmed (live) |\n| Different attribution/reasoning exact duplicate → `duplicate`, no new case | Confirmed (live) |\n| Original snapshot regression → `needs_attention`, `still_violates_original_requirement`, nonzero exit | Confirmed (live) |\n| Source-patched snapshot regression → `passed_replay` | Confirmed (live) |\n| Stale snapshot digest rejected before replay | Confirmed (live) |\n| Remaining negative/revision cases (unit-covered) | Confirmed (unit tests) |\n| `accepted: false`, `creator_approval: pending`, `contract_correspondence: not_proved` in all outputs | Confirmed |\n| Live replay `inconclusive` / `Operation not permitted` (handoff blocker) | Not reproduced — live replay succeeded in this environment |\n| Lean verifier integration cases (general.regressions, Docker) | **Not run** (Docker build not attempted in this session) |\n| Hostile-input review, concurrency/corruption live cases, resource limits | **Not run** beyond recorded unit coverage |\n\n## Artifacts produced\n\n- `runs/reproduced-attack-existing/` (attack.json, report.html, replay/replay.json)\n- `runs/reproduced-attack-intent/`\n- `runs/reproduced-attack-acceptance/`, `runs/reproduced-attack-dedup/`\n- `runs/reproduced-accepted-cases/a16ab5a533f0aebfe4c4a34efddd349b7c454d256da66f71067bf97f739d21b2.json`\n- `runs/reproduced-regress-original/`, `runs/reproduced-regress-source-patched/`\n- `runs/reproduced-attack-stale/`\n- This report: `runs/reproduced-verification-2026-10-05/report.md`\n\n## Limitations\n\nThese checks verify selected application behavior and live replay of synthetic developer-authored fixtures on a disposable local Anvil. They do not establish general English-intent fidelity, Lean-model/EVM equivalence, comprehensive contract security, semantic deduplication resistance, Sybil/collusion resistance, or a production creator-approval process. The general verifier Docker integration was not exercised in this session. Recorded evidence in `runs/demo`, `runs/validated-live-loop` and `general/evidence` was not modified.\n",
+  "stages": [
+   {
+    "title": "Unit suite",
+    "status": "54 tests pass",
+    "note": null,
+    "values": null
+   },
+   {
+    "title": "Existing requirement violation (live replay)",
+    "status": "demonstrated_spec_requirement_violation",
+    "note": "withdrawal drains collateral at step 4",
+    "values": {
+     "Debt": 50,
+     "Collateral": 0
+    }
+   },
+   {
+    "title": "Intent-gap attack (live replay)",
+    "status": "demonstrated_intent_requirement_violation",
+    "note": "BorrowLimit not_demonstrated; CollateralBacking violated",
+    "values": null
+   },
+   {
+    "title": "Maintainer acceptance",
+    "status": "attack_acceptance: accepted",
+    "note": "registry case a16ab5a5…",
+    "values": null
+   },
+   {
+    "title": "Exact-case deduplication",
+    "status": "attack_acceptance: duplicate",
+    "note": "different attribution, same identity: still one case",
+    "values": null
+   },
+   {
+    "title": "Original regression",
+    "status": "still_violates_original_requirement",
+    "note": "intentional nonzero exit",
+    "values": null
+   },
+   {
+    "title": "Source-patched regression",
+    "status": "passed_replay",
+    "note": "repaired withdrawal behavior, old formal spec preserved",
+    "values": null
+   },
+   {
+    "title": "Stale digest rejected",
+    "status": "rejected before replay",
+    "note": null,
+    "values": null
+   },
+   {
+    "title": "Runtime failure",
+    "status": "inconclusive",
+    "note": "injected compiler failure stays inconclusive, never a successful attack",
+    "values": null
+   }
+  ]
+ },
+ "records": {
+  "cards": [
+   {
+    "label": "Kernel-checked targets",
+    "value": "5",
+    "detail": "4 supported model observations + 1 exact-target refutation · Lean 4.35.0-rc2, nanoda + con-ron"
+   },
+   {
+    "label": "Verifier gates",
+    "value": "7/7",
+    "detail": "real proof accepted; sorry, target swap, custom axiom, body replacement and meaning change all rejected"
+   },
+   {
+    "label": "Live replay stages",
+    "value": "8/8",
+    "detail": "asserted by scripts/verify_attacks.sh on a disposable local Anvil"
+   },
+   {
+    "label": "Contract families",
+    "value": "2",
+    "detail": "LendingPool (repaired revision) and MilestoneEscrow; both accepted regression cases survive in the maintainer registry"
+   }
+  ],
+  "latest": "Latest accepted finding — MilestoneEscrow double release · Oct 5, 2026 · still replays on the unrepaired snapshot",
+  "frontier": "2 families · 5 kernel-checked targets · 2 accepted regression cases"
+ },
+ "ledger": {
+  "lending_frames": {
+   "original": [
+    {
+     "step": 0,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 0
+     }
+    },
+    {
+     "step": 1,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 0
+     }
+    },
+    {
+     "step": 2,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 100
+     }
+    },
+    {
+     "step": 3,
+     "satisfied": true,
+     "values": {
+      "Debt": 50,
+      "Collateral": 100
+     }
+    },
+    {
+     "step": 4,
+     "satisfied": false,
+     "values": {
+      "Debt": 50,
+      "Collateral": 0
+     }
+    }
+   ],
+   "repaired": [
+    {
+     "step": 0,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 0
+     }
+    },
+    {
+     "step": 1,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 0
+     }
+    },
+    {
+     "step": 2,
+     "satisfied": true,
+     "values": {
+      "Debt": 0,
+      "Collateral": 100
+     }
+    },
+    {
+     "step": 3,
+     "satisfied": true,
+     "values": {
+      "Debt": 50,
+      "Collateral": 100
+     }
+    },
+    {
+     "step": 4,
+     "satisfied": true,
+     "values": {
+      "Debt": 50,
+      "Collateral": 100
+     }
+    }
+   ]
+  },
+  "escrow_frames": {
+   "attack": [
+    {
+     "step": 0,
+     "satisfied": true,
+     "values": {
+      "Deposited": 0,
+      "Released": 0,
+      "OtherDeposited": 0,
+      "Balance": 0
+     }
+    },
+    {
+     "step": 1,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 0,
+      "OtherDeposited": 0,
+      "Balance": 100
+     }
+    },
+    {
+     "step": 2,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 0,
+      "OtherDeposited": 100,
+      "Balance": 200
+     }
+    },
+    {
+     "step": 3,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 100,
+      "OtherDeposited": 100,
+      "Balance": 100
+     }
+    },
+    {
+     "step": 4,
+     "satisfied": false,
+     "values": {
+      "Deposited": 100,
+      "Released": 200,
+      "OtherDeposited": 100,
+      "Balance": 0
+     }
+    }
+   ],
+   "safe": [
+    {
+     "step": 0,
+     "satisfied": true,
+     "values": {
+      "Deposited": 0,
+      "Released": 0,
+      "OtherDeposited": 0,
+      "Balance": 0
+     }
+    },
+    {
+     "step": 1,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 0,
+      "OtherDeposited": 0,
+      "Balance": 100
+     }
+    },
+    {
+     "step": 2,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 0,
+      "OtherDeposited": 100,
+      "Balance": 200
+     }
+    },
+    {
+     "step": 3,
+     "satisfied": true,
+     "values": {
+      "Deposited": 100,
+      "Released": 40,
+      "OtherDeposited": 100,
+      "Balance": 160
+     }
+    }
+   ]
+  },
+  "rows": [
+   {
+    "author": "internal-fixture-maintainer",
+    "authorship": "repo maintainer · reviewed fixture",
+    "evidence": "LendingPool CollateralBacking withdrawal violation",
+    "kind": "contract_bug",
+    "result": "demonstrated_spec_requirement_violation",
+    "kernels": "anvil 1.7.1 replay",
+    "digest": "a16ab5a5…",
+    "recorded": "Oct 5, 2026"
+   },
+   {
+    "author": "internal-fixture-maintainer",
+    "authorship": "repo maintainer · reviewed fixture",
+    "evidence": "MilestoneEscrow ReleaseWithinDeposit double release",
+    "kind": "contract_bug",
+    "result": "demonstrated_spec_requirement_violation",
+    "kernels": "anvil 1.7.1 replay",
+    "digest": "3224e07c…",
+    "recorded": "Oct 5, 2026"
+   },
+   {
+    "author": "repo maintainer",
+    "authorship": "hand-authored revision proof",
+    "evidence": "Repaired LendingPool CollateralLock",
+    "kind": "model observation",
+    "result": "supported_model_observation",
+    "kernels": "nanoda + con-ron",
+    "digest": "cbc67ee8…",
+    "recorded": "Oct 5, 2026"
+   },
+   {
+    "author": "repo maintainer",
+    "authorship": "hand-authored revision proof",
+    "evidence": "Repaired LendingPool BorrowCap (callback withdrawal)",
+    "kind": "model observation",
+    "result": "supported_model_observation",
+    "kernels": "nanoda + con-ron",
+    "digest": "cbc67ee8…",
+    "recorded": "Oct 5, 2026"
+   },
+   {
+    "author": "repo maintainer",
+    "authorship": "hand-authored refutation",
+    "evidence": "OtherClaimAvailability (over arbitrary states)",
+    "kind": "exact-target refutation",
+    "result": "supported_model_counterexample",
+    "kernels": "nanoda + con-ron",
+    "digest": "cbc67ee8…",
+    "recorded": "Oct 5, 2026"
+   },
+   {
+    "author": "repo maintainer",
+    "authorship": "hand-authored refutation",
+    "evidence": "MilestoneEscrow ReleasedWithinDeposit",
+    "kind": "exact-target refutation",
+    "result": "supported_model_counterexample",
+    "kernels": "nanoda + con-ron",
+    "digest": "3224e07c…",
+    "recorded": "Oct 5, 2026"
+   }
+  ],
+  "note": "Developer-authored demonstrations and maintainer decisions, not agent discoveries. Every entry leaves accepted: false, creator_approval: pending, contract_correspondence: not_proved."
+ },
+ "revision": {
+  "title": "Regenerated repaired-source revision (LendingPool)",
+  "snapshot_digest": "cbc67ee8aa84d9d2dd7e01e4b6bf988ac5e9da1606c640fdbf3abbee825ce972",
+  "model_change": "withdrawAllowed now also requires debt ≤ (collateral - amount)/2, mirroring the source repair; property statements unchanged.",
+  "full_verify": "rejected — four real proofs plus an honest sorry on the open OtherClaimAvailability target",
+  "kernel_checked": [
+   {
+    "id": "CollateralLock",
+    "status": "proved",
+    "note": "the repaired withdrawal protection"
+   },
+   {
+    "id": "BorrowCap",
+    "status": "proved",
+    "note": "callback withdrawal stays capped"
+   },
+   {
+    "id": "DepositCredit",
+    "status": "proved",
+    "note": "deposit credits exactly the deposited amount"
+   },
+   {
+    "id": "BorrowCheckBeforeCall",
+    "status": "proved",
+    "note": "borrow cap holds before the payout call"
+   },
+   {
+    "id": "OtherClaimAvailability",
+    "status": "supported_model_counterexample",
+    "note": "exact-target refutation: needs a reachability invariant, invalid over arbitrary states"
+   }
+  ],
+  "regression": "requires_mapping_review",
+  "regression_note": "concrete replay no longer demonstrates the violation; mapping changed, so review is required",
+  "final_attack": "not_demonstrated",
+  "final_attack_values": {
+   "Debt": 50,
+   "Collateral": 100
+  }
+ },
+ "escrow": {
+  "title": "Second contract family: MilestoneEscrow",
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "bug": "the release guard checks only deposited[payer]; it never subtracts already-released amounts, so one deposit can be released twice",
+  "safe": {
+   "status": "not_demonstrated",
+   "checks": {
+    "ReleaseWithinDeposit": "not_demonstrated",
+    "OtherPayerBacking": "not_demonstrated"
+   }
+  },
+  "double_release": {
+   "status": "demonstrated_spec_requirement_violation",
+   "values": {
+    "Deposited": 100,
+    "Released": 200,
+    "OtherDeposited": 100,
+    "Balance": 0
+   }
+  },
+  "review": {
+   "creator": "internal-fixture-maintainer",
+   "decisions": [
+    {
+     "id": "ReleaseWithinDeposit",
+     "decision": "approved",
+     "reason": "Released must stay within deposited at every step; matches the quoted intent."
+    },
+    {
+     "id": "OtherPayerBacking",
+     "decision": "rejected",
+     "reason": "The proposed reading does not capture the registered-seller restriction; needs a contract change and creator clarification."
+    }
+   ]
+  },
+  "regression": "still_violates_original_requirement",
+  "counterexample": "proved",
+  "counterexample_note": "from a healthy state (deposited 100, released 30), a 100 release leaves released 130 over the 100 deposit"
+ },
+ "review_flow": {
+  "lending": {
+   "creator": "internal-fixture-maintainer",
+   "decisions": [
+    {
+     "requirement_id": "CollateralBacking",
+     "decision": "approved",
+     "reason": "Internal fixture review: the predicate (2*Debt <= Collateral at every step) matches the quoted intent that borrowers must not remove collateral while doing so would leave their debt undercollateralized, and the trusted probes observe exactly the debt and collateral state fields. Approving this operational interpretation does not approve the contract or prove model/EVM equivalence."
+    }
+   ]
+  },
+  "revised": {
+   "creator": "internal-fixture-maintainer",
+   "decisions": [
+    {
+     "requirement_id": "CollateralBacking",
+     "decision": "approved",
+     "reason": "Internal fixture review after the source repair: the revised model adds the withdrawal guard (debt at most half of remaining collateral), the kernel-checked CollateralLock observation supports the mapping, and the concrete regression replay no longer demonstrates the violation. Approving this operational interpretation does not approve the contract or prove model/EVM equivalence."
+    }
+   ]
+  },
+  "note": "Recorded internal-fixture reviews by the repo maintainer; they are interpretations for transaction checking only, not production creator approval."
+ },
+ "demos": {
+  "escrow": {
+   "label": "MilestoneEscrow (recommended first)",
+   "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+   "intent": "Payers escrow funds for milestone work, and the escrow must hold them safely: funds released for a payer must never exceed what that payer deposited, and other payers must keep their deposited funds available in the escrow at all times. Identify contract violations and missing assumptions; do not assume away malicious callers.",
+   "policy": {
+    "version": "transaction-attack-v1",
+    "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+    "contract_name": "MilestoneEscrow",
+    "probes": [
+     {
+      "kind": "view",
+      "label": "Deposited",
+      "function": "deposited(address)",
+      "arguments": [
+       "$account:0"
+      ]
+     },
+     {
+      "kind": "view",
+      "label": "Released",
+      "function": "released(address)",
+      "arguments": [
+       "$account:0"
+      ]
+     },
+     {
+      "kind": "view",
+      "label": "OtherDeposited",
+      "function": "deposited(address)",
+      "arguments": [
+       "$account:1"
+      ]
+     },
+     {
+      "kind": "balance",
+      "label": "Balance"
+     }
+    ],
+    "requirements": [
+     {
+      "id": "ReleaseWithinDeposit",
+      "scope": "spec",
+      "property_id": "ReleasedWithinDeposit",
+      "requirement": "Released funds for a payer must never exceed that payer deposits.",
+      "intent_quote": "funds released for a payer must never exceed what that payer deposited",
+      "review_status": "pending",
+      "step_scope": "each",
+      "predicate": {
+       "op": "le",
+       "args": [
+        {
+         "ref": "Released"
+        },
+        {
+         "ref": "Deposited"
+        }
+       ]
+      }
+     },
+     {
+      "id": "OtherPayerBacking",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Other payers deposits must remain available in the escrow after any release.",
+      "intent_quote": "other payers must keep their deposited funds available in the escrow at all times",
+      "review_status": "pending",
+      "step_scope": "each",
+      "predicate": {
+       "op": "le",
+       "args": [
+        {
+         "ref": "OtherDeposited"
+        },
+        {
+         "ref": "Balance"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "submission": {
+    "version": "transaction-attack-v1",
+    "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+    "policy_digest": "eb28b2ab5c64b743f9c6ebaa1de828c74774c421a0bef7308202030637e36397",
+    "contributor": "developer-authored-escrow-fixture",
+    "requirement_id": "ReleaseWithinDeposit",
+    "reasoning": "Account 0 deposits 100. A caller releases 100 against that deposit twice; released exceeds deposited and drains the escrow balance.",
+    "trace": {
+     "contract_name": "MilestoneEscrow",
+     "constructor_arguments": [],
+     "actions": [
+      {
+       "account": 0,
+       "function": "deposit()",
+       "arguments": [],
+       "value_wei": "100"
+      },
+      {
+       "account": 1,
+       "function": "deposit()",
+       "arguments": [],
+       "value_wei": "100"
+      },
+      {
+       "account": 2,
+       "function": "release(address,uint256)",
+       "arguments": [
+        "$account:0",
+        "100"
+       ],
+       "value_wei": "0"
+      },
+      {
+       "account": 2,
+       "function": "release(address,uint256)",
+       "arguments": [
+        "$account:0",
+        "100"
+       ],
+       "value_wei": "0"
+      }
+     ],
+     "observations": []
+    }
+   }
+  },
+  "lending": {
+   "label": "LendingPool",
+   "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+   "intent": "Keep lenders’ funds safe. Borrowers may borrow at most half their collateral value, and must not remove collateral while doing so would leave their debt undercollateralized. Identify contract violations and missing assumptions; do not assume away malicious borrowers.",
+   "policy": {
+    "version": "transaction-attack-v1",
+    "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+    "contract_name": "LendingPool",
+    "probes": [
+     {
+      "kind": "view",
+      "label": "Debt",
+      "function": "debt(address)",
+      "arguments": [
+       "$account:0"
+      ]
+     },
+     {
+      "kind": "view",
+      "label": "Collateral",
+      "function": "collateral(address)",
+      "arguments": [
+       "$account:0"
+      ]
+     }
+    ],
+    "requirements": [
+     {
+      "id": "CollateralBacking",
+      "scope": "spec",
+      "property_id": "CollateralLock",
+      "requirement": "Debt must remain at most half of collateral after withdrawal.",
+      "intent_quote": "must not remove collateral while doing so would leave their debt undercollateralized",
+      "review_status": "approved",
+      "step_scope": "each",
+      "predicate": {
+       "op": "le",
+       "args": [
+        {
+         "op": "mul",
+         "args": [
+          2,
+          {
+           "ref": "Debt"
+          }
+         ]
+        },
+        {
+         "ref": "Collateral"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "submission": {
+    "version": "transaction-attack-v1",
+    "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+    "policy_digest": "8325dce98b397681bf99fe839268063b2601c59d34a783de5b220e66739e5f91",
+    "contributor": "developer-authored-demo",
+    "requirement_id": "CollateralBacking",
+    "reasoning": "Withdraw all collateral after borrowing; debt remains.",
+    "trace": {
+     "contract_name": "LendingPool",
+     "constructor_arguments": [],
+     "actions": [
+      {
+       "account": 1,
+       "function": "",
+       "arguments": [],
+       "value_wei": "100"
+      },
+      {
+       "account": 0,
+       "function": "deposit()",
+       "arguments": [],
+       "value_wei": "100"
+      },
+      {
+       "account": 0,
+       "function": "borrow(uint256)",
+       "arguments": [
+        "50"
+       ],
+       "value_wei": "0"
+      },
+      {
+       "account": 0,
+       "function": "withdraw(uint256)",
+       "arguments": [
+        "100"
+       ],
+       "value_wei": "0"
+      }
+     ],
+     "observations": [
+      {
+       "label": "remaining collateral",
+       "function": "collateral(address)",
+       "arguments": [
+        "$account:0"
+       ]
+      },
+      {
+       "label": "outstanding debt",
+       "function": "debt(address)",
+       "arguments": [
+        "$account:0"
+       ]
+      }
+     ]
+    }
+   }
+  }
+ },
+ "commands": {
+  "verify_loop": "bash scripts/verify_attacks.sh",
+  "attack": "python3 -m general attack <snapshot> <policy> <submission> --output runs/my-attack",
+  "accept": "python3 -m general accept-attack <snapshot> <policy> <submission> --registry runs/my-registry --category contract_bug --reason \"<maintainer reason>\" --output runs/my-acceptance",
+  "regress": "python3 -m general regress-attacks <snapshot> --registry runs/my-registry --output runs/my-regressions",
+  "propose": "python3 -m general propose-policy <snapshot> <draft-policy> --output runs/my-proposal",
+  "review_policy": "python3 -m general review-policy <snapshot> runs/my-proposal/proposal.json <decisions> --output runs/my-review",
+  "verifier_gates": "python3 -m general.regressions --output runs/my-gates"
+ }
+}

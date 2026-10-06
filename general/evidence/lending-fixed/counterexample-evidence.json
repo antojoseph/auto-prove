@@ -1,0 +1,15 @@
+{
+  "status": "supported_model_counterexample",
+  "target_digest": "fe54231de85ce6756099294b79f1c9dd9c835cf92768af1a9f80f4a7d2756a20",
+  "kernel_checked": true,
+  "target_matched": true,
+  "independent_kernels": [
+    "nanoda",
+    "con-ron"
+  ],
+  "isolation": "separate network-free non-root Docker containers; no nested bwrap",
+  "contract_correspondence": "not_proved",
+  "evidence_scope": "generated Lean model; Solidity/EVM transaction NOT replayed",
+  "intent_connection": "fallible adversary interpretation; creator review pending",
+  "proof_format": "term"
+}
