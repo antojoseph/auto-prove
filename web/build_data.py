@@ -111,7 +111,7 @@ def main():
             'participation': [
                 {'step': 'Run the loop yourself', 'body': 'Clone the internal repo, install the pinned runtimes, and run scripts/verify_attacks.sh: the full eight-stage live loop replays on a disposable local Anvil. No model account needed.'},
                 {'step': 'Compose a transaction contribution', 'body': 'Use the composer below to build a transaction-attack-v1 submission: schema-checked in your browser, digests computed client-side. Download it and run the CLI to obtain trusted receipts. This site accepts no submissions — the maintainer registry is CLI-only.'},
-                {'step': 'Submit on Yukon', 'body': 'Once imported, solvers submit prompt improvements via the Yukon CLI (editable proposer/reviewer prompts). Transaction contributions follow the interim maintainer-mediated protocol: post the artifact to the version-linked discussion entry; the maintainer replays it and publishes receipts plus the acceptance decision.'},
+                {'step': 'Submit on Yukon', 'body': 'The contribution mode is the challenge\'s real submission surface: editablePaths is submission/ only. Once imported, the hosted verifier replays your contributions on a pinned disposable Anvil and kernel-checks formal refutations — no model account, no secrets. Clone, set up, run, then submit your contribution directory with a public note.'},
             ],
             'blockers': 'Hosted Yukon import needs platform authentication and registry coordination. Until then this page stages the challenge: the checking machinery is fully reproducible from the internal repository.',
             'loop': [

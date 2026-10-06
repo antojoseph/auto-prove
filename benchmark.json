@@ -1,23 +1,14 @@
 {
   "schemaVersion": 1,
-  "name": "Intent-grounded smart-contract specifications (internal)",
-  "description": "Experimental AI-judged coverage proxy with frozen Lean targets and independent kernels. Not ready for prize payouts.",
+  "name": "spec-prove",
+  "description": "Demonstrate contract-requirement violations with replayable transaction contributions: a fail-closed backend verifier replays each submission on a disposable local chain and independently kernel-checks claimed formal refutations. Submissions are data only; participant code is never executed.",
   "category": "AI / smart-contract specifications",
   "direction": "+",
-  "editablePaths": [
-    "prompts/general_proposer.txt",
-    "prompts/general_reviewer.txt"
-  ],
-  "setupCommand": [
-    "bash",
-    ".yukon/setup.sh"
-  ],
-  "benchmarkCommand": [
-    "bash",
-    ".yukon/run.sh"
-  ],
+  "editablePaths": ["submission"],
+  "setupCommand": ["bash", ".yukon/setup.sh"],
+  "benchmarkCommand": ["bash", ".yukon/run.sh"],
   "scorePath": ".yukon/score.json",
-  "maxSubmissionBytes": 65536,
+  "maxSubmissionBytes": 1048576,
   "runner": {
     "provider": "github-actions",
     "workflow": "benchmark.yml",

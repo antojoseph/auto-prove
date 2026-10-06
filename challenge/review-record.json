@@ -1,0 +1,102 @@
+{
+  "version": "policy-review-v1",
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "proposed_policy_digest": "645990dad53f8433407ce7305e15aa41580dfaaa728dcb41a0daaf3ad9cb043a",
+  "reviewed_policy_digest": "f2979baeb900c45bea8ef0052d84ffe595da8a5496fc8a782bea32b9c70eec46",
+  "creator": "internal-fixture-maintainer",
+  "decisions": [
+    {
+      "requirement_id": "ReleaseWithinDeposit",
+      "decision": "approved",
+      "reason": "Challenge version review: released(payer) <= deposited(payer) at every step matches the quoted intent that funds released for a payer must never exceed what that payer deposited. Approval is an interpretation for transaction checking only; it does not approve the contract or prove model/EVM equivalence."
+    },
+    {
+      "requirement_id": "OtherPayerBacking",
+      "decision": "approved",
+      "reason": "Challenge version review: the balance-coverage reading (other payers deposits stay <= escrow balance at every step) is adopted as its own protection, distinct from the unrepresented registered-seller restriction which remains an open unresolved question for this contract. Approval is an interpretation for transaction checking only."
+    }
+  ],
+  "rejected_requirements": [],
+  "usable_for_transaction_checking": true,
+  "approved_policy": {
+    "version": "transaction-attack-v1",
+    "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+    "contract_name": "MilestoneEscrow",
+    "probes": [
+      {
+        "kind": "view",
+        "label": "Deposited",
+        "function": "deposited(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      },
+      {
+        "kind": "view",
+        "label": "Released",
+        "function": "released(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      },
+      {
+        "kind": "view",
+        "label": "OtherDeposited",
+        "function": "deposited(address)",
+        "arguments": [
+          "$account:1"
+        ]
+      },
+      {
+        "kind": "balance",
+        "label": "Balance"
+      }
+    ],
+    "requirements": [
+      {
+        "id": "ReleaseWithinDeposit",
+        "scope": "spec",
+        "property_id": "ReleasedWithinDeposit",
+        "requirement": "Released funds for a payer must never exceed that payer deposits.",
+        "intent_quote": "funds released for a payer must never exceed what that payer deposited",
+        "review_status": "approved",
+        "step_scope": "each",
+        "predicate": {
+          "op": "le",
+          "args": [
+            {
+              "ref": "Released"
+            },
+            {
+              "ref": "Deposited"
+            }
+          ]
+        }
+      },
+      {
+        "id": "OtherPayerBacking",
+        "scope": "intent",
+        "property_id": "",
+        "requirement": "Other payers' deposits must remain available in the escrow after any release.",
+        "intent_quote": "other payers must keep their deposited funds available in the escrow at all times",
+        "review_status": "approved",
+        "step_scope": "each",
+        "predicate": {
+          "op": "le",
+          "args": [
+            {
+              "ref": "OtherDeposited"
+            },
+            {
+              "ref": "Balance"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "meaning": "an approved operational requirement is a reviewed interpretation for transaction checking; it is not contract approval, semantic approval, or a model/EVM equivalence proof",
+  "creator_approval": "pending",
+  "accepted": false,
+  "contract_correspondence": "not_proved"
+}

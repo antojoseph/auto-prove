@@ -1,14 +1,13 @@
 {
  "challenge": {
-  "name": "Intent-grounded smart-contract specifications (internal)",
-  "description": "Experimental AI-judged coverage proxy with frozen Lean targets and independent kernels. Not ready for prize payouts.",
+  "name": "spec-prove",
+  "description": "Demonstrate contract-requirement violations with replayable transaction contributions: a fail-closed backend verifier replays each submission on a disposable local chain and independently kernel-checks claimed formal refutations. Submissions are data only; participant code is never executed.",
   "category": "AI / smart-contract specifications",
   "direction": "+",
   "status": "Internal pilot — staged for Yukon; registry import pending",
   "objective": "Improve a reusable pipeline that receives Solidity source and English intent, generates meaningful security specifications, and supplies proofs, checked attacks, or explicit unresolved results. The same submission must work across new inputs without a bespoke family verifier.",
   "editable_paths": [
-   "prompts/general_proposer.txt",
-   "prompts/general_reviewer.txt"
+   "submission"
   ],
   "score_composition": "60% AI-assessed meaningful coverage / 40% formally supported coverage. Zero credit for unsupported coverage, unapproved assumptions that bypass an intended threat, vacuity or unrelated tautologies. The numeric score is an internal proxy, never an automatic payout rule.",
   "rubric_cases": [
@@ -87,7 +86,7 @@
    },
    {
     "step": "Submit on Yukon",
-    "body": "Once imported, solvers submit prompt improvements via the Yukon CLI (editable proposer/reviewer prompts). Transaction contributions follow the interim maintainer-mediated protocol: post the artifact to the version-linked discussion entry; the maintainer replays it and publishes receipts plus the acceptance decision."
+    "body": "The contribution mode is the challenge's real submission surface: editablePaths is submission/ only. Once imported, the hosted verifier replays your contributions on a pinned disposable Anvil and kernel-checks formal refutations — no model account, no secrets. Clone, set up, run, then submit your contribution directory with a public note."
    }
   ],
   "blockers": "Hosted Yukon import needs platform authentication and registry coordination. Until then this page stages the challenge: the checking machinery is fully reproducible from the internal repository.",
@@ -104,7 +103,7 @@
   "title": "Intent-grounded contract specification review",
   "repo": "antojoseph/auto-prove",
   "branch": "general-intent-pipeline",
-  "commit": "6243add",
+  "commit": "29f2dab",
   "generated": "2026-10-05",
   "tools": {
    "python": "3.9.6",

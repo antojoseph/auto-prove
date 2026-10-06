@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Unit tests
-        run: python3 -m unittest test_attacks test_general test_app test_engine
+        run: python3 -m unittest test_attacks test_contribution_benchmark test_general test_app test_engine
       - name: Build pinned isolated verifier
         run: docker build -t auto-prove-verifier:lean4.35.0-rc2 general/verifier
       - name: Independently check protected proof gates

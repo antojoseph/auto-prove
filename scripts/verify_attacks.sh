@@ -26,7 +26,7 @@ print(v)' "$1" "$2")" || fail "cannot read $2 from $1"
 }
 
 printf '%s\n' "1/8 unit suite"
-"$python_executable" -m unittest test_attacks test_general test_app test_engine
+"$python_executable" -m unittest test_attacks test_contribution_benchmark test_general test_app test_engine
 
 printf '%s\n' "2/8 existing requirement violation (live replay)"
 "$python_executable" -m general attack "$fixtures/snapshot.json" "$fixtures/policy.json" \

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "name": "Intent-grounded smart-contract specifications (internal)",
+  "description": "Experimental AI-judged coverage proxy with frozen Lean targets and independent kernels. Not ready for prize payouts.",
+  "category": "AI / smart-contract specifications",
+  "direction": "+",
+  "editablePaths": [
+    "prompts/general_proposer.txt",
+    "prompts/general_reviewer.txt"
+  ],
+  "setupCommand": [
+    "bash",
+    ".yukon/setup.sh"
+  ],
+  "benchmarkCommand": [
+    "bash",
+    ".yukon/run.sh"
+  ],
+  "scorePath": ".yukon/score.json",
+  "maxSubmissionBytes": 65536,
+  "runner": {
+    "provider": "github-actions",
+    "workflow": "benchmark.yml",
+    "maxConcurrentWorkflows": 1
+  }
+}
