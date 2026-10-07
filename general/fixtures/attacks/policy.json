@@ -1,0 +1,51 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+  "contract_name": "LendingPool",
+  "probes": [
+    {
+      "kind": "view",
+      "label": "Debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "Collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "CollateralBacking",
+      "scope": "spec",
+      "property_id": "CollateralLock",
+      "requirement": "Debt must remain at most half of collateral after withdrawal.",
+      "intent_quote": "must not remove collateral while doing so would leave their debt undercollateralized",
+      "review_status": "approved",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "op": "mul",
+            "args": [
+              2,
+              {
+                "ref": "Debt"
+              }
+            ]
+          },
+          {
+            "ref": "Collateral"
+          }
+        ]
+      }
+    }
+  ]
+}

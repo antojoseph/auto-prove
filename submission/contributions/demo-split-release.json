@@ -1,0 +1,54 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "policy_digest": "f2979baeb900c45bea8ef0052d84ffe595da8a5496fc8a782bea32b9c70eec46",
+  "contributor": "antojoseph \u2014 internal demo verification",
+  "requirement_id": "ReleaseWithinDeposit",
+  "reasoning": "Internal demo: split a payer release into 60 + 40 + 1 wei. Each amount independently passes the deposit guard, but cumulative releases become 101 against 100 deposited; the escrow balance becomes 99 while the second payer is still owed 100.",
+  "trace": {
+    "contract_name": "MilestoneEscrow",
+    "constructor_arguments": [],
+    "actions": [
+      {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 1,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 2,
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "60"
+        ],
+        "value_wei": "0"
+      },
+      {
+        "account": 2,
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "40"
+        ],
+        "value_wei": "0"
+      },
+      {
+        "account": 2,
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "1"
+        ],
+        "value_wei": "0"
+      }
+    ],
+    "observations": []
+  }
+}

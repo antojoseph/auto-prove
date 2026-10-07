@@ -1,0 +1,3 @@
+$ lake comparator --config comparator.json --challenge-from-export Challenge.export --solution-from-export Solution.export --inadvisably-no-sandbox
+WARNING: Sandbox disabled, this run is not trustworthy.
+error: Const does not match between challenge and target 'AutoSpec.ident'

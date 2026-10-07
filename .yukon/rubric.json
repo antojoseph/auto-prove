@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "input": "general/fixtures/LendingPool.json",
+      "criteria": [
+        {
+          "id": "BorrowLimit",
+          "text": "Model the source borrow guard and explicitly require total borrower debt to stay at most half collateral at a successful borrow."
+        },
+        {
+          "id": "CollateralWithdrawal",
+          "text": "Explicitly cover debt backing after withdrawal; do not remove this requirement, assume benign borrowers, or idealize a missing source guard. Discover the real source collateral withdrawal flaw or give an honest unresolved result."
+        },
+        {
+          "id": "AccountingAmbiguity",
+          "text": "Surface missing lender accounting / repayment / liquidation decisions and distinguish the creator intended safety requirements from assumptions."
+        }
+      ]
+    },
+    {
+      "input": "general/fixtures/OwnerVault.json",
+      "criteria": [
+        {
+          "id": "OwnerAuthorization",
+          "text": "State a meaningful formal rule that non-owner withdrawal cannot reduce funds, with the original source authorization check represented."
+        },
+        {
+          "id": "DepositCap",
+          "text": "Cover successful deposits through deposit() respecting the immutable cap. Do not claim all balance increases respect the cap: forced Ether is outside that function."
+        },
+        {
+          "id": "CallbackAssumptions",
+          "text": "Expose recipient callback / reentrancy, payout failure and forced Ether modeling limits without assuming away authorization requirements."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "evidence_kind": "model_observation",
+  "observation_statement": "\u2200 (s : State) (who amount : Nat), borrowAllowed s who amount \u2192 (borrowSimple s who amount true).debt who \u2264 s.collateral who / 2",
+  "proof": "by\n  intro s who amount allowed\n  unfold borrowSimple\n  rw [if_pos \u27e8allowed, rfl\u27e9]\n  show (put s.debt who (s.debt who + amount)) who \u2264 s.collateral who / 2\n  have hput : (put s.debt who (s.debt who + amount)) who = s.debt who + amount := by simp [put]\n  rw [hput]\n  exact allowed.1",
+  "reasoning": "The borrow cap holds before the external payout call because the debt update is bounded by half of collateral."
+}

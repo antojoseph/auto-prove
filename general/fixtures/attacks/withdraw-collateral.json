@@ -1,0 +1,58 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+  "policy_digest": "8325dce98b397681bf99fe839268063b2601c59d34a783de5b220e66739e5f91",
+  "contributor": "developer-authored-demo",
+  "requirement_id": "CollateralBacking",
+  "reasoning": "Withdraw all collateral after borrowing; debt remains.",
+  "trace": {
+    "contract_name": "LendingPool",
+    "constructor_arguments": [],
+    "actions": [
+      {
+        "account": 1,
+        "function": "",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 0,
+        "function": "borrow(uint256)",
+        "arguments": [
+          "50"
+        ],
+        "value_wei": "0"
+      },
+      {
+        "account": 0,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "100"
+        ],
+        "value_wei": "0"
+      }
+    ],
+    "observations": [
+      {
+        "label": "remaining collateral",
+        "function": "collateral(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      },
+      {
+        "label": "outstanding debt",
+        "function": "debt(address)",
+        "arguments": [
+          "$account:0"
+        ]
+      }
+    ]
+  }
+}

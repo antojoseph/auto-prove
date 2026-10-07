@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "spec-prove",
+  "description": "Demonstrate contract-requirement violations with replayable transaction contributions: a fail-closed backend verifier replays each submission on a disposable local chain and independently kernel-checks claimed formal refutations. Submissions are data only; participant code is never executed.",
+  "category": "AI / smart-contract specifications",
+  "direction": "+",
+  "editablePaths": ["submission"],
+  "setupCommand": ["bash", ".yukon/setup.sh"],
+  "benchmarkCommand": ["bash", ".yukon/run.sh"],
+  "scorePath": ".yukon/score.json",
+  "maxSubmissionBytes": 1048576,
+  "runner": {
+    "provider": "github-actions",
+    "workflow": "benchmark.yml",
+    "maxConcurrentWorkflows": 1
+  }
+}

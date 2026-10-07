@@ -1,0 +1,6 @@
+{
+  "evidence_kind": "model_observation",
+  "observation_statement": "\u2200 (s : State) (who amount : Nat), 0 < amount \u2192 withdrawAllowed s who amount \u2192 (withdraw s who amount true).debt who \u2264 (withdraw s who amount true).collateral who / 2",
+  "proof": "by\n  intro s who amount pos allowed\n  unfold withdraw\n  rw [if_pos \u27e8allowed, rfl\u27e9]\n  show s.debt who \u2264 (put s.collateral who (s.collateral who - amount)) who / 2\n  have hput : (put s.collateral who (s.collateral who - amount)) who = s.collateral who - amount := by simp [put]\n  rw [hput]\n  exact allowed.2.2",
+  "reasoning": "The repaired withdraw guard keeps debt at most half of remaining collateral after any allowed withdrawal."
+}

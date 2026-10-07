@@ -1,0 +1,77 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "d397a7baab6ccbb70be6e41983855edd7a5d529144f82a1388811694b0304b45",
+  "contract_name": "LendingPool",
+  "probes": [
+    {
+      "kind": "view",
+      "label": "Debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "Collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "BorrowLimit",
+      "scope": "spec",
+      "property_id": "BorrowCheckBeforeCall",
+      "requirement": "Debt stays within half collateral after successful borrowing.",
+      "intent_quote": "Borrowers may borrow at most half their collateral value",
+      "review_status": "approved",
+      "step_scope": "after:borrow(uint256)",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "op": "mul",
+            "args": [
+              2,
+              {
+                "ref": "Debt"
+              }
+            ]
+          },
+          {
+            "ref": "Collateral"
+          }
+        ]
+      }
+    },
+    {
+      "id": "CollateralBacking",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Debt must remain at most half of collateral after withdrawal.",
+      "intent_quote": "must not remove collateral while doing so would leave their debt undercollateralized",
+      "review_status": "approved",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "op": "mul",
+            "args": [
+              2,
+              {
+                "ref": "Debt"
+              }
+            ]
+          },
+          {
+            "ref": "Collateral"
+          }
+        ]
+      }
+    }
+  ]
+}

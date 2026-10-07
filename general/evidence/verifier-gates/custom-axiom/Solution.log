@@ -1,0 +1,7 @@
+$ lake update
+info: autoprove: no previous manifest, creating one from scratch
+info: toolchain not updated; no toolchain information found
+$ lake build Solution
+✔ [2/4] Built Model (163ms)
+✔ [3/4] Built Solution (154ms)
+Build completed successfully (4 jobs).

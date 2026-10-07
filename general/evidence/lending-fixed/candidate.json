@@ -1,0 +1,66 @@
+{
+  "status": "supported",
+  "summary": "Regenerated specification for the source-repaired LendingPool: the withdraw guard now requires debt to remain at most half of remaining collateral, restoring the intended collateral lock. Property statements are unchanged from the reviewed revision; only the withdrawAllowed model definition changed to mirror the repaired source.",
+  "threat_model": [
+    "Sequential atomic transactions with success/revert outcome.",
+    "Malicious borrowers may reenter withdraw during a borrow payout callback.",
+    "Callers control their own collateral and debt mappings; no other actor can move them.",
+    "Callback recipients may accept or reject ETH transfers."
+  ],
+  "model_body": "structure State where\n  collateral : Nat \u2192 Nat\n  debt : Nat \u2192 Nat\n  pool : Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef empty : State :=\n  { collateral := fun _ => 0, debt := fun _ => 0, pool := 0 }\n\ndef put (f : Nat \u2192 Nat) (who value : Nat) : Nat \u2192 Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : State) (who amount : Nat) : Prop :=\n  s.collateral who + amount \u2264 maxUint \u2227 s.pool + amount \u2264 maxUint\n\ndef deposit (s : State) (who amount : Nat) : State :=\n  if depositAllowed s who amount then\n    { s with collateral := put s.collateral who (s.collateral who + amount), pool := s.pool + amount }\n  else s\n\nabbrev receiveAllowed (s : State) (amount : Nat) : Prop :=\n  s.pool + amount \u2264 maxUint\n\ndef receiveEth (s : State) (amount : Nat) : State :=\n  if receiveAllowed s amount then\n    { s with pool := s.pool + amount }\n  else s\n\nabbrev borrowAllowed (s : State) (who amount : Nat) : Prop :=\n  s.debt who + amount \u2264 s.collateral who / 2 \u2227\n  s.debt who + amount \u2264 maxUint \u2227\n  amount \u2264 s.pool\n\ndef borrowSimple (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if borrowAllowed s who amount \u2227 accepts = true then\n    { s with debt := put s.debt who (s.debt who + amount), pool := s.pool - amount }\n  else s\n\nabbrev withdrawAllowed (s : State) (who amount : Nat) : Prop :=\n  amount \u2264 s.collateral who \u2227 amount \u2264 s.pool \u2227\n  s.debt who \u2264 (s.collateral who - amount) / 2\n\ndef withdraw (s : State) (who amount : Nat) (accepts : Bool) : State :=\n  if withdrawAllowed s who amount \u2227 accepts = true then\n    { s with collateral := put s.collateral who (s.collateral who - amount), pool := s.pool - amount }\n  else s\n\ndef borrowWithWithdrawal (s : State) (who amount callbackAmount : Nat) (accepts : Bool) : State :=\n  if borrowAllowed s who amount \u2227 accepts = true then\n    withdraw (borrowSimple s who amount true) who callbackAmount true\n  else s",
+  "properties": [
+    {
+      "id": "DepositCredit",
+      "requirement": "A successful deposit credits the sender with the ETH deposited.",
+      "intent_basis": "Inferred accounting requirement from deposit() and the request to protect deposited funds.",
+      "statement": "\u2200 (s : State) (who amount : Nat), depositAllowed s who amount \u2192 (deposit s who amount).collateral who = s.collateral who + amount",
+      "explanation": "Maps the Solidity deposit() credit to the abstract deposit step on the caller collateral mapping.",
+      "proof": "by sorry"
+    },
+    {
+      "id": "BorrowCheckBeforeCall",
+      "requirement": "At the loan transfer point, the borrow guard must limit updated debt to half the borrower's recorded collateral.",
+      "intent_basis": "Explicit half-collateral borrowing limit, scoped to the point before recipient code can run.",
+      "statement": "\u2200 (s : State) (who amount : Nat), borrowAllowed s who amount \u2192 (borrowSimple s who amount true).debt who \u2264 s.collateral who / 2",
+      "explanation": "The borrow cap check happens before the external payout call; the borrowed amount updates the caller debt mapping.",
+      "proof": "by sorry"
+    },
+    {
+      "id": "BorrowCap",
+      "requirement": "A completed successful borrow must leave the borrower's debt at most half their remaining collateral, including after a recipient callback.",
+      "intent_basis": "Explicit borrowing limit, applied to the completed transaction; the callback case corrects the previous model's omission.",
+      "statement": "\u2200 (s : State) (who amount callbackAmount : Nat), borrowAllowed s who amount \u2192 (borrowWithWithdrawal s who amount callbackAmount true).debt who \u2264 (borrowWithWithdrawal s who amount callbackAmount true).collateral who / 2",
+      "explanation": "After a borrow whose callback performs a withdrawal, debt stays at most half of collateral; the repaired withdraw guard enforces the ratio at withdrawal time.",
+      "proof": "by sorry"
+    },
+    {
+      "id": "CollateralLock",
+      "requirement": "Every successful positive collateral withdrawal must leave the caller's debt backed by at least twice its value in remaining collateral.",
+      "intent_basis": "Explicit creator intent. The previous healthy-state premise was removed because it left later withdrawals by an underwater borrower uncovered.",
+      "statement": "\u2200 (s : State) (who amount : Nat), 0 < amount \u2192 withdrawAllowed s who amount \u2192 (withdraw s who amount true).debt who \u2264 (withdraw s who amount true).collateral who / 2",
+      "explanation": "The repaired withdraw guard keeps debt at most half of collateral after any allowed withdrawal.",
+      "proof": "by sorry"
+    },
+    {
+      "id": "OtherClaimAvailability",
+      "requirement": "A borrower's withdrawal must preserve an already payable, debt-free depositor's recorded withdrawal balance.",
+      "intent_basis": "Inferred from keeping deposited funds safe. Whether this recorded balance is the intended lender claim remains a creator decision.",
+      "statement": "\u2200 (s : State) (borrower honest amount : Nat), borrower \u2260 honest \u2192 s.debt honest = 0 \u2192 s.collateral honest \u2264 s.pool \u2192 0 < amount \u2192 withdrawAllowed s borrower amount \u2192 (withdraw s borrower amount true).collateral honest \u2264 (withdraw s borrower amount true).pool",
+      "explanation": "A withdrawal leaves honest users claims backed by the pool. Stated over arbitrary states; reachability of backing is not modeled, so this target remains open and is independently refuted over arbitrary states.",
+      "proof": "by sorry"
+    }
+  ],
+  "assumptions": [
+    "Analyze sequential, atomic successful/reverted transactions.",
+    "The abstract pool tracks deposited ETH; callback acceptance is a Boolean.",
+    "Integer bounds follow the Solidity uint256 range via maxUint."
+  ],
+  "unresolved_questions": [
+    "OtherClaimAvailability is stated over arbitrary states; a sound version needs a reachability invariant over execution traces, which the bounded model language does not yet express.",
+    "Callback participants other than the borrower are not modeled; only the borrower callback withdrawal path is represented."
+  ],
+  "execution_gaps": [
+    "Tuple/array ABI results, multi-contract deployments and chain forks remain outside the concrete replay runner.",
+    "The concrete runner observes scalar views and balance only."
+  ]
+}

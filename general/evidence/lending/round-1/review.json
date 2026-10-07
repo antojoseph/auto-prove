@@ -1,0 +1,224 @@
+{
+  "candidate_digest": "c1f8759d1fb7d994fad1d0d7345553a7204b4803ede29035d8e58bcc7841c8aa",
+  "summary": "The Solidity source permits a borrower to borrow 50 wei and then withdraw all 100 wei of their collateral, leaving only 50 wei against another depositor’s recorded 100 wei. The proposed EVM trace has not been executed. The model also omits reentrant callbacks, and the supplied Lean sources have no checked proofs.",
+  "findings": [
+    {
+      "kind": "contract_bug",
+      "property_id": "CollateralLock",
+      "reasoning": "The source checks collateral before borrowing but withdraw checks only the withdrawal amount and the success of the ETH transfer. After the listed calls, the borrower owes 50 wei against zero collateral. The pool has 50 wei while account 0 retains a recorded 100 wei balance. This contradicts the explicit collateral lock; under the specification’s provisional claim interpretation, it also makes account 0’s balance unavailable. The model’s transition equations predict these values, but the model failed to compile and this replay has not been run.",
+      "evidence_kind": "reasoning_only",
+      "transaction_sequence": [
+        "Account 0 deposits 100 wei, recording 100 wei of collateral.",
+        "Account 1 deposits 100 wei, then borrows 50 wei.",
+        "Account 1 withdraws its full 100 wei of collateral. The pool has 150 wei before this withdrawal, so the transfer can succeed.",
+        "Expected result: account 1 has debt 50 and collateral 0; the pool has 50 wei and account 0 still has collateral 100."
+      ],
+      "observation_statement": "",
+      "proof": "",
+      "suggested_change": "Require debt[msg.sender] <= (collateral[msg.sender] - amount) / 2 before completing a positive collateral withdrawal. Keep the collateral lock requirement and verify the resulting implementation.",
+      "evm_trace": {
+        "contract_name": "LendingPool",
+        "constructor_arguments": [],
+        "actions": [
+          {
+            "account": 0,
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100"
+          },
+          {
+            "account": 1,
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100"
+          },
+          {
+            "account": 1,
+            "function": "borrow(uint256)",
+            "arguments": [
+              "50"
+            ],
+            "value_wei": "0"
+          },
+          {
+            "account": 1,
+            "function": "withdraw(uint256)",
+            "arguments": [
+              "100"
+            ],
+            "value_wei": "0"
+          }
+        ],
+        "observations": [
+          {
+            "label": "borrower debt",
+            "function": "debt(address)",
+            "arguments": [
+              "$account:1"
+            ]
+          },
+          {
+            "label": "borrower collateral",
+            "function": "collateral(address)",
+            "arguments": [
+              "$account:1"
+            ]
+          },
+          {
+            "label": "other depositor collateral",
+            "function": "collateral(address)",
+            "arguments": [
+              "$account:0"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "model_gap",
+      "property_id": "BorrowCap",
+      "reasoning": "The modeled borrow transition uses accepts only as a success flag. In the source, the ETH transfer invokes recipient code before borrow returns. A contract borrower can reenter withdraw during that callback. With a funded pool and 100 wei of its own collateral, it can borrow 50 wei and have its callback withdraw 100 wei; the outer borrow then returns with debt 50 and collateral 0. Sequential, atomic transactions do not exclude nested calls within one transaction. The frozen BorrowCap statement describes the modeled transition, not necessarily the final state of a source-level borrow call.",
+      "evidence_kind": "reasoning_only",
+      "transaction_sequence": [
+        "An honest account deposits 100 wei; a malicious contract borrower deposits 100 wei.",
+        "The malicious contract calls borrow(50). The pool has 150 wei after the loan transfer.",
+        "Its ETH-receiving callback calls withdraw(100) once and accepts that transfer.",
+        "Expected final state of the single borrow transaction: borrower debt 50, collateral 0, pool 50."
+      ],
+      "observation_statement": "",
+      "proof": "",
+      "suggested_change": "Model callbacks and nested calls before treating BorrowCap as a property of a completed Solidity transaction. Enforce the withdrawal collateral check so such callbacks cannot remove required collateral.",
+      "evm_trace": null
+    },
+    {
+      "kind": "spec_gap",
+      "property_id": "CollateralLock",
+      "reasoning": "CollateralLock assumes the account is healthy before withdrawal. Once an account is underwater, the target imposes no restriction on further positive withdrawals. In the source, borrowing 50 against 100 collateral and withdrawing 1 leaves collateral 99, for which 50 > 99 / 2. A subsequent withdrawal of 99 is permitted if the pool is funded, while the frozen target’s premise is false for that second step. The first withdrawal already violates the existing target; this finding concerns its missing coverage of later withdrawals.",
+      "evidence_kind": "reasoning_only",
+      "transaction_sequence": [
+        "Account 0 deposits 100 wei; account 1 deposits 100 wei and borrows 50 wei.",
+        "Account 1 withdraws 1 wei, leaving debt 50 and collateral 99.",
+        "Account 1 withdraws the remaining 99 wei despite already being underwater; the pool still has enough ETH.",
+        "Expected result: debt 50 and collateral 0."
+      ],
+      "observation_statement": "",
+      "proof": "",
+      "suggested_change": "State the rule for every successful positive collateral withdrawal, including one from an already underwater account: the resulting debt must not exceed half the remaining collateral. Do not rely on the healthy-state premise alone.",
+      "evm_trace": {
+        "contract_name": "LendingPool",
+        "constructor_arguments": [],
+        "actions": [
+          {
+            "account": 0,
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100"
+          },
+          {
+            "account": 1,
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100"
+          },
+          {
+            "account": 1,
+            "function": "borrow(uint256)",
+            "arguments": [
+              "50"
+            ],
+            "value_wei": "0"
+          },
+          {
+            "account": 1,
+            "function": "withdraw(uint256)",
+            "arguments": [
+              "1"
+            ],
+            "value_wei": "0"
+          },
+          {
+            "account": 1,
+            "function": "withdraw(uint256)",
+            "arguments": [
+              "99"
+            ],
+            "value_wei": "0"
+          }
+        ],
+        "observations": [
+          {
+            "label": "borrower debt",
+            "function": "debt(address)",
+            "arguments": [
+              "$account:1"
+            ]
+          },
+          {
+            "label": "borrower collateral",
+            "function": "collateral(address)",
+            "arguments": [
+              "$account:1"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ambiguity",
+      "property_id": "OtherClaimAvailability",
+      "reasoning": "The source has no lender ledger: deposit credits borrower collateral, while a direct ETH transfer through receive credits no address. It also has no repayment or liquidation function. OtherClaimAvailability provisionally treats a debt-free collateral balance as an immediately payable lender claim, but the creator has not defined lender ownership or redemption. A direct transfer leaves its sender with zero recorded collateral and no withdrawal entitlement. That is a loss of a lender deposit if direct transfers are funding, but consistent with an intentional donation.",
+      "evidence_kind": "reasoning_only",
+      "transaction_sequence": [
+        "Account 2 sends 100 wei directly to the contract’s receive function.",
+        "Expected result: collateral and debt for account 2 remain zero; a positive withdraw by account 2 would fail its collateral check."
+      ],
+      "observation_statement": "",
+      "proof": "",
+      "suggested_change": "Define which payments create lender claims and what safety means for those claims. Add explicit lender accounting and redemption rules if funding is intended, or reject and document uncredited direct transfers. Specify how debt is repaid or liquidated.",
+      "evm_trace": {
+        "contract_name": "LendingPool",
+        "constructor_arguments": [],
+        "actions": [
+          {
+            "account": 2,
+            "function": "",
+            "arguments": [],
+            "value_wei": "100"
+          }
+        ],
+        "observations": [
+          {
+            "label": "direct sender collateral",
+            "function": "collateral(address)",
+            "arguments": [
+              "$account:2"
+            ]
+          },
+          {
+            "label": "direct sender debt",
+            "function": "debt(address)",
+            "arguments": [
+              "$account:2"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "model_gap",
+      "property_id": "",
+      "reasoning": "The supplied diagnostic shows Model.lean failing to synthesize Decidable instances for the guards in deposit, receiveEth, borrow, and withdraw. Challenge.lean also leaves every target as by sorry. Consequently none of the claimed properties or attack arithmetic has been kernel checked, and contract correspondence remains unproved. This is an unsupported verification artifact, not evidence that the properties hold.",
+      "evidence_kind": "reasoning_only",
+      "transaction_sequence": [],
+      "observation_statement": "",
+      "proof": "",
+      "suggested_change": "Make the branch guards decidable in Lean 4.35.0-rc2, rebuild the unchanged targets, and replace each sorry with a checked proof or an explicit counterexample. Keep verification status unsupported until that succeeds.",
+      "evm_trace": null
+    }
+  ],
+  "unresolved_questions": [
+    "Does deposit() create a lender claim, borrower collateral, or both? Are direct ETH transfers intended donations?",
+    "Does lender safety require immediate withdrawal, aggregate solvency, or eventual recovery of loans?",
+    "What repayment and liquidation behavior is intended when debt remains outstanding?"
+  ]
+}

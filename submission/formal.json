@@ -1,0 +1,4 @@
+{
+  "property_id": "ReleasedWithinDeposit",
+  "proof": "by\n  intro total\n  have hclaim := total { deposited := fun _ => 100, released := fun _ => 30 } 0 100 (by decide) (by decide)\n  exact absurd hclaim (by decide)"
+}

@@ -1,0 +1,45 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "policy_digest": "eb28b2ab5c64b743f9c6ebaa1de828c74774c421a0bef7308202030637e36397",
+  "contributor": "developer-authored-escrow-fixture",
+  "requirement_id": "ReleaseWithinDeposit",
+  "reasoning": "Account 0 deposits 100. A caller releases 100 against that deposit twice; released exceeds deposited and drains the escrow balance.",
+  "trace": {
+    "contract_name": "MilestoneEscrow",
+    "constructor_arguments": [],
+    "actions": [
+      {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 1,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      {
+        "account": 2,
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "100"
+        ],
+        "value_wei": "0"
+      },
+      {
+        "account": 2,
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "100"
+        ],
+        "value_wei": "0"
+      }
+    ],
+    "observations": []
+  }
+}

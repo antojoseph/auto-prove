@@ -1,0 +1,90 @@
+{
+  "status": "replayed",
+  "input_digest": "d375ec30d149b5943d9653dc2b7790b77c9332bc4f686224603f79e28de796c0",
+  "trace_digest": "4bb20ceed925d5b037a6a56575ecbc86a9cac55da36298e9a492577cbf7b64f9",
+  "scope": "concrete Solidity transactions on disposable local Anvil; no model/EVM equivalence proof",
+  "intent_connection": "fallible interpretation; creator review pending",
+  "transactions": [
+    {
+      "action": {
+        "account": 0,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x7226448df314a133fad66a97b785444187ebfbe1581dd8eaf146bb29238a4034",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100"
+      },
+      "status": "success",
+      "transaction_hash": "0x7b9c8a8311d3db417fbd8b4a74c254557ab79ca07dcaa967917aea7976bf8baa",
+      "gas_used": 43645
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "borrow(uint256)",
+        "arguments": [
+          "50"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0xcca6790c5c859d2bcb12842befb004584958dd401eb7a9006193b6e57bf6c362",
+      "gas_used": 53912
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "1"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0x1f07106a89f3276714dfb2c3246e7d8ff0792995cd327b27f9a4c5233795650d",
+      "gas_used": 34195
+    },
+    {
+      "action": {
+        "account": 1,
+        "function": "withdraw(uint256)",
+        "arguments": [
+          "99"
+        ],
+        "value_wei": "0"
+      },
+      "status": "success",
+      "transaction_hash": "0xf36285cfb57ead4e0ce09efd0596f3ff8346c71857aaf65187982d4cd1e4df9e",
+      "gas_used": 29395
+    }
+  ],
+  "observations": [
+    {
+      "label": "borrower debt",
+      "function": "debt(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000032"
+    },
+    {
+      "label": "borrower collateral",
+      "function": "collateral(address)",
+      "arguments": [
+        "$account:1"
+      ],
+      "raw_value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "contract_address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "contract_balance_wei": 50
+}

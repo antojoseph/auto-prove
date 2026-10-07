@@ -1,0 +1,13 @@
+{
+  "version": "policy-review-v1",
+  "snapshot_digest": "d3f22756391b5946a33ac6ffa9434ba43b07d51d59d485094c2619eb81445f56",
+  "policy_digest": "8dae3fbd8394c9dff10081bdcacd12af905f20e6ac3793be144421e71e211da9",
+  "creator": "internal-fixture-maintainer",
+  "decisions": [
+    {
+      "requirement_id": "CollateralBacking",
+      "decision": "approved",
+      "reason": "Internal fixture review: the predicate (2*Debt <= Collateral at every step) matches the quoted intent that borrowers must not remove collateral while doing so would leave their debt undercollateralized, and the trusted probes observe exactly the debt and collateral state fields. Approving this operational interpretation does not approve the contract or prove model/EVM equivalence."
+    }
+  ]
+}

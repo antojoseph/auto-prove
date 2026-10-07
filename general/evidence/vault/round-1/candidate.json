@@ -1,0 +1,80 @@
+{
+  "status": "supported",
+  "summary": "Initial specification for OwnerVault. The model covers owner-only payouts, the deposit-specific cap, forced Ether, and failed payouts. No contract_bug against the two stated requirements is identified. A global balance cap and a limit on payouts during reentrancy require creator clarification. Proof terms are supplied but have not been run through Lean.",
+  "threat_model": [
+    "Actors: the deploying owner, arbitrary depositors and non-owner callers, contracts that can force Ether into the vault, and an owner contract whose callback can reenter or revert.",
+    "Assets: the vault's Ether, the owner-only withdrawal authority, the immutable cap, and the availability of deposits and withdrawals.",
+    "A non-owner may try to withdraw; a depositor may try to exceed the cap; forced Ether may raise the balance above the cap or block later deposits.",
+    "An owner contract can reenter during payout and make additional owner-authorized withdrawals. A failed payout reverts the withdrawal."
+  ],
+  "model_body": "structure Vault where\n  owner : Nat\n  cap : Nat\n  balance : Nat\n\nstructure Outcome where\n  next : Vault\n  success : Bool\n  paidTo : Nat\n  paid : Nat\n\ninductive Action where\n  | deposit (caller value : Nat)\n  | withdraw (caller value : Nat) (payoutOk : Bool)\n  | forced (value : Nat)\n\ndef init (creator limit prefunded : Nat) : Vault :=\n  { owner := creator, cap := limit, balance := prefunded }\n\ndef deposit (s : Vault) (value : Nat) : Outcome :=\n  if s.balance + value ≤ s.cap then\n    { next := { s with balance := s.balance + value },\n      success := true, paidTo := s.owner, paid := 0 }\n  else\n    { next := s, success := false, paidTo := s.owner, paid := 0 }\n\ndef forceEther (s : Vault) (value : Nat) : Outcome :=\n  { next := { s with balance := s.balance + value },\n    success := true, paidTo := s.owner, paid := 0 }\n\ndef withdraw (s : Vault) (caller value : Nat) (payoutOk : Bool) : Outcome :=\n  if caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true then\n    { next := { s with balance := s.balance - value },\n      success := true, paidTo := s.owner, paid := value }\n  else\n    { next := s, success := false, paidTo := s.owner, paid := 0 }\n\ndef step (s : Vault) (a : Action) : Outcome :=\n  match a with\n  | .deposit _ value => deposit s value\n  | .withdraw caller value payoutOk => withdraw s caller value payoutOk\n  | .forced value => forceEther s value",
+  "properties": [
+    {
+      "id": "InitialAuthority",
+      "requirement": "The deploying caller becomes owner, and the constructor limit becomes the cap.",
+      "intent_basis": "Inferred from the contract constructor and the intent's references to the owner and immutable cap.",
+      "statement": "∀ (creator limit prefunded : Nat), (init creator limit prefunded).owner = creator ∧ (init creator limit prefunded).cap = limit",
+      "explanation": "Initial Ether may be prefunded; it does not change who owns the vault or the chosen cap.",
+      "proof": "by\n  intro creator limit prefunded\n  simp [init]"
+    },
+    {
+      "id": "ImmutableAuthorityAndCap",
+      "requirement": "Deposits, withdrawals, and forced Ether do not change the owner or cap.",
+      "intent_basis": "Inferred from the stated immutable cap and the contract's immutable owner and cap fields.",
+      "statement": "∀ (s : Vault) (a : Action), (step s a).next.owner = s.owner ∧ (step s a).next.cap = s.cap",
+      "explanation": "Every modeled action preserves both configuration fields.",
+      "proof": "by\n  intro s a\n  cases a with\n  | deposit caller value =>\n      by_cases h : s.balance + value ≤ s.cap\n      · simp [step, deposit, h]\n      · simp [step, deposit, h]\n  | withdraw caller value payoutOk =>\n      by_cases h : caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true\n      · simp [step, withdraw, h]\n      · simp [step, withdraw, h]\n  | forced value =>\n      simp [step, forceEther]"
+    },
+    {
+      "id": "OwnerOnlyWithdrawal",
+      "requirement": "A non-owner withdrawal attempt cannot succeed, transfer Ether, or change the vault.",
+      "intent_basis": "Explicit: only the owner may withdraw deposited funds.",
+      "statement": "∀ (s : Vault) (caller value : Nat) (payoutOk : Bool), caller ≠ s.owner → (withdraw s caller value payoutOk).success = false ∧ (withdraw s caller value payoutOk).next = s ∧ (withdraw s caller value payoutOk).paid = 0",
+      "explanation": "The caller check precedes the external payout call.",
+      "proof": "by\n  intro s caller value payoutOk h\n  have hguard : ¬ (caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true) := by\n    intro hs\n    exact h hs.1\n  simp [withdraw, hguard]"
+    },
+    {
+      "id": "OwnerIsRecipient",
+      "requirement": "Every positive withdrawal payout goes to the owner and arises from an owner call.",
+      "intent_basis": "Explicit owner-only withdrawal intent, together with the contract's payout destination.",
+      "statement": "∀ (s : Vault) (caller value : Nat) (payoutOk : Bool), (withdraw s caller value payoutOk).paid > 0 → caller = s.owner ∧ (withdraw s caller value payoutOk).paidTo = s.owner",
+      "explanation": "Reentrant calls are assessed separately using their actual immediate caller.",
+      "proof": "by\n  intro s caller value payoutOk h\n  by_cases hg : caller = s.owner ∧ value ≤ s.balance ∧ payoutOk = true\n  · constructor\n    · exact hg.1\n    · simp [withdraw, hg]\n  · simp [withdraw, hg] at h"
+    },
+    {
+      "id": "DepositCap",
+      "requirement": "A successful deposit() leaves the balance no greater than the cap.",
+      "intent_basis": "Explicit: deposits through deposit() must not make the balance exceed the immutable cap.",
+      "statement": "∀ (s : Vault) (value : Nat), (deposit s value).success = true → (deposit s value).next.balance ≤ s.cap",
+      "explanation": "The guard checks the balance after adding the incoming value.",
+      "proof": "by\n  intro s value h\n  by_cases hc : s.balance + value ≤ s.cap\n  · simpa [deposit, hc] using hc\n  · simp [deposit, hc] at h"
+    },
+    {
+      "id": "FailedPayoutRollback",
+      "requirement": "If the owner payout call fails, the withdrawal reverts without a committed payment or balance change.",
+      "intent_basis": "Inferred from the request to address payout failures, require(ok), and the approved atomic transaction assumption.",
+      "statement": "∀ (s : Vault) (caller value : Nat), (withdraw s caller value false).success = false ∧ (withdraw s caller value false).next = s ∧ (withdraw s caller value false).paid = 0",
+      "explanation": "The contract requires a successful low-level call; failure reverts.",
+      "proof": "by\n  intro s caller value\n  simp [withdraw]"
+    }
+  ],
+  "assumptions": [
+    "Approved: transactions are sequential and atomic; a revert rolls back Ether transfers and nested effects.",
+    "Each vault invocation uses its actual EVM msg.sender. No nonreentrancy assumption is made.",
+    "payoutOk represents the external CALL result; success is not assumed. Withdrawal availability would require sufficient balance and an owner address that accepts the payment.",
+    "Prefunding and forced Ether are allowed. No assumption that the vault's total balance always stays below the cap is made.",
+    "Nat models Ether amounts and address equality; valid EVM ranges are assumed when relating arithmetic to Solidity."
+  ],
+  "unresolved_questions": [
+    "Should the cap constrain the total balance, including prefunding and forced Ether, or only successful deposit() calls?",
+    "If the owner is a contract, must one top-level withdraw(amount) be limited to a single payout of amount despite reentrant owner calls?",
+    "Is withdrawal availability required when the owner contract rejects Ether or exhausts gas? The current contract can revert in those cases."
+  ],
+  "execution_gaps": [
+    "Lean proofs were not compiled or checked in this response; no verifier or independent adversarial review result was supplied.",
+    "The model treats a withdrawal as one committed payout and abstracts the owner callback into payoutOk. It does not model call-stack interleaving, gas, call depth, or nested rollback in detail. This is a model_gap for whole-transaction reentrancy claims.",
+    "Forced Ether and prefunding are modeled, so DepositCap does not imply a global balance invariant. Treating such an invariant as intended would require creator input; it is not currently a demonstrated contract_bug.",
+    "The contract keeps no per-depositor accounting. The model treats deposited funds as part of the vault's single Ether balance.",
+    "Nat omits uint256 overflow and finite address width; no overflow-sensitive claim is proved."
+  ]
+}

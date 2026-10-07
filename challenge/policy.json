@@ -1,0 +1,77 @@
+{
+  "version": "transaction-attack-v1",
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "contract_name": "MilestoneEscrow",
+  "probes": [
+    {
+      "kind": "view",
+      "label": "Deposited",
+      "function": "deposited(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "Released",
+      "function": "released(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "OtherDeposited",
+      "function": "deposited(address)",
+      "arguments": [
+        "$account:1"
+      ]
+    },
+    {
+      "kind": "balance",
+      "label": "Balance"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "ReleaseWithinDeposit",
+      "scope": "spec",
+      "property_id": "ReleasedWithinDeposit",
+      "requirement": "Released funds for a payer must never exceed that payer deposits.",
+      "intent_quote": "funds released for a payer must never exceed what that payer deposited",
+      "review_status": "approved",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "Released"
+          },
+          {
+            "ref": "Deposited"
+          }
+        ]
+      }
+    },
+    {
+      "id": "OtherPayerBacking",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Other payers' deposits must remain available in the escrow after any release.",
+      "intent_quote": "other payers must keep their deposited funds available in the escrow at all times",
+      "review_status": "approved",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "OtherDeposited"
+          },
+          {
+            "ref": "Balance"
+          }
+        ]
+      }
+    }
+  ]
+}

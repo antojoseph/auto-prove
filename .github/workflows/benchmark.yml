@@ -1,0 +1,71 @@
+name: spec.prove contribution benchmark
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      score: ${{ steps.score.outputs.value }}
+    steps:
+      - name: Checkout dispatched commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          clean: true
+          fetch-depth: 2
+          persist-credentials: false
+      # Yukon enforces editablePaths while constructing the submission commit.
+      # Keep this independent check so a malformed submissions/* ref fails
+      # before any runtime is downloaded.
+      - name: Verify submission surface
+        if: startsWith(github.ref, 'refs/heads/submissions/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          read -r -a commit_line <<< "$(git rev-list --parents -n 1 "$GITHUB_SHA")"
+          if (( ${#commit_line[@]} != 2 )); then
+            echo "Submission must be a single-parent commit" >&2
+            exit 1
+          fi
+          while IFS= read -r -d '' changed_path; do
+            case "$changed_path" in
+              submission|submission/*) ;;
+              *)
+                echo "Submission changed a non-editable path: $changed_path" >&2
+                exit 1
+                ;;
+            esac
+          done < <(git diff --no-renames --name-only -z "$GITHUB_SHA^" "$GITHUB_SHA")
+      - name: Setup pinned runtimes and the isolated verifier
+        run: bash .yukon/setup.sh
+      - name: Benchmark (fail-closed replay and kernel checks)
+        run: bash .yukon/run.sh
+      - name: Read score
+        id: score
+        if: success()
+        shell: bash
+        run: echo "value=$(python3 -c 'import json; print(json.load(open(".yukon/score.json"))["score"])')" >> "$GITHUB_OUTPUT"
+      - name: Upload authoritative score
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: benchmark-score
+          path: .yukon/score.json
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Upload benchmark evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-evidence
+          path: |
+            .yukon/runs/
+            !.yukon/runs/**/score.json
+          include-hidden-files: true
+          if-no-files-found: ignore

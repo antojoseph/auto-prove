@@ -65,7 +65,11 @@ def invoke_agent(role, data, output, timeout, model=None):
     executable=shutil.which("codex")
     if not executable: raise RuntimeError("Codex CLI unavailable. Recorded demo needs no model access.")
     instructions=(ROOT/"prompts"/f"{role}.txt").read_text()
-    schema=ROOT/"schemas"/("candidate.json" if role=="proposer" else "review.json")
+    schemas={"proposer":"candidate.json", "reviewer":"review.json",
+             "general_proposer":"general_candidate.json", "general_reviewer":"general_review.json",
+             "general_assessor":"general_assessment.json"}
+    if role not in schemas: raise ValueError("Unknown agent role")
+    schema=ROOT/"schemas"/schemas[role]
     # Ephemeral contexts share neither conversation nor output artifacts. The
     # minimal working directory contains only this role's prompt inputs. Codex's
     # read-only sandbox still permits reads elsewhere: this is prompt isolation,
@@ -92,8 +96,16 @@ def invoke_agent(role, data, output, timeout, model=None):
             command[2:2]=["-c",f'mcp_servers.{name}.enabled=false']
         prompt=instructions+"\n\nUse only the data below. Do not browse, access connectors, execute shell commands, read other files, or write files. Return the JSON directly.\n\n"+json.dumps(data)
         started=time.monotonic()
-        result=subprocess.run(command,input=prompt,text=True,capture_output=True,timeout=timeout)
         output=Path(output); output.mkdir(parents=True,exist_ok=True)
+        try:
+            result=subprocess.run(command,input=prompt,text=True,capture_output=True,timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            def partial(value):
+                return value.decode(errors="replace") if isinstance(value,bytes) else value or ""
+            (output/"events.jsonl").write_text(partial(error.stdout))
+            (output/"stderr.log").write_text(partial(error.stderr))
+            write(output/"failure.json",dict(status="inconclusive",reason="Model invocation timed out",role=role))
+            raise RuntimeError(f"{role} timed out; see {output/'failure.json'}") from None
         (output/"events.jsonl").write_text(result.stdout)
         (output/"stderr.log").write_text(result.stderr)
         if result.returncode:
