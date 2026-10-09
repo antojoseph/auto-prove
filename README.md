@@ -1,5 +1,7 @@
 # auto-prove
 
+This test branch adds the isolated [Uniswap v4 submission workflow](experiments/uniswap-v4/README.md). Its root `benchmark.json` is for the v4 development benchmark only; the escrow benchmark remains on `general-intent-pipeline`.
+
 A reproducible escrow autoformalization experiment: one agent proposes a smart-contract specification, another challenges its interpretation of the creator's intent, and replay plus Lean check the evidence before a repair.
 
 **Start with [the experiment report](REPORT.md).** Give [AGENTS.md](AGENTS.md) to your coding agent to set up and test the repository. Source code, recorded agent responses, interactive reports and proof-checking evidence are included.

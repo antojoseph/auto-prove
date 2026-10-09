@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "family": "uniswap-v4-rebate-v1",
+  "requirement": "R2",
+  "description": "Non-violating baseline: one swap, followed by one claim within earned rebate.",
+  "actions": [
+    {"op": "swap", "pool": "A", "amount": 10000},
+    {"op": "claim", "pool": "A", "amount": 49}
+  ]
+}

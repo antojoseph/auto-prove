@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "name": "spec-prove-v4-internal",
+  "description": "Internal Uniswap v4 custom-hook test: submit a bounded JSON transaction trace. The trusted validator replays the seeded and repaired hooks against pinned v4 PoolManager, checks accounting agreement and Lean witnesses, and awards one point for each demonstrated requirement (R2 and R3; maximum 2). No participant code, external-chain deployment, or creator approval.",
+  "category": "Internal / smart-contract specifications",
+  "direction": "+",
+  "editablePaths": ["submission/trace.json"],
+  "setupCommand": ["bash", ".yukon/setup.sh"],
+  "benchmarkCommand": ["python3", "experiments/uniswap-v4/benchmark.py"],
+  "scorePath": ".yukon/score.json",
+  "maxSubmissionBytes": 32768,
+  "runner": {"provider": "github-actions", "workflow": "benchmark.yml", "maxConcurrentWorkflows": 1}
+}
