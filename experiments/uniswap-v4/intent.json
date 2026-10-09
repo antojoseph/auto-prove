@@ -1,0 +1,24 @@
+{
+  "family": "uniswap-v4-rebate-v1",
+  "status": "draft_for_creator_review",
+  "creator_approval": "pending",
+  "accepted": false,
+  "requirements": {
+    "R1": "For each supported exact-input swap, collect floor(gross output / 100) units of the output ERC20 and credit floor(fee / 2) rebate units to the payer identified by the dedicated router.",
+    "R2": "A user's cumulative claims for a pool and currency must not exceed their cumulative earned rebate for that pool and currency.",
+    "R3": "Claims from a pool must not consume reserves owed to another pool. No pool's cumulative payments may exceed its collected fees.",
+    "R4": "Only PoolManager can invoke the active hook callback, and only the dedicated router can identify a swap payer. A user can claim only their own credit.",
+    "R5": "A rejected claim changes no balances or accounting. A failed token transfer atomically rolls back accounting."
+  },
+  "environment_assumptions_pending_review": [
+    "Two local initialized pools share the same two test ERC20 tokens and hook; no native currency or exact-output swaps.",
+    "Tokens are exact-transfer, non-rebasing and have no callbacks. The local router has no slippage protection and is not a production router.",
+    "The abstract Lean model covers one currency and one recipient per pool with nonnegative unbounded integers; AMM math, EVM arithmetic and token behavior are not modeled.",
+    "The PoolManager supplies actual output deltas. Fee collection in Lean is an input derived from Solidity replay, not a proof of swap math.",
+    "Remaining fees are retained by the hook. There is no admin withdrawal, upgrade mechanism, or live patch deployment."
+  ],
+  "open_questions": [
+    "Creator approval of the 1% fee, 50% rebate, per-swap rounding, and retained-fee policy.",
+    "Whether a future challenge should support multiple modeled recipients, native currency, exact-output swaps, or adversarial tokens."
+  ]
+}
