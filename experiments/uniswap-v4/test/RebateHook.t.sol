@@ -132,7 +132,7 @@ contract RebateHookTest is Deployers {
         return PoolSwapTest.TestSettings(false, false);
     }
 
-    function testFailedTransferRollsBackClaimAndCanRetry() public {
+    function testTransferFailureRollsBackClaimAndCanRetry() public {
         fixture(true);
         uint256 reward = swapIn(poolA, 10_000, true) / 2;
         uint256 custody = currency1.balanceOf(address(hook));

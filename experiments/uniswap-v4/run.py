@@ -236,7 +236,7 @@ def main():
         code, version = command([forge, "--version"])
         if code: raise ValueError("Forge required; set V4_FORGE")
         state["forge_version"] = version.strip()
-        forge_args = [forge, "test", "--root", BASE, "--json"]
+        forge_args = [forge, "test", "--root", BASE, "--json", "-vv"]
         if os.environ.get("V4_SOLC"):
             forge_args += ["--use", str(Path(os.environ["V4_SOLC"]).resolve()), "--offline"]
         code, raw = command(forge_args + ["--match-contract", "^RebateHookTest$"])
@@ -251,7 +251,7 @@ def main():
             generated = Path(f.name)
         try:
             code, raw = command(forge_args + ["--match-path", "test/" + generated.name,
-                "--match-test", "^testSubmitted(Seeded|Repaired)$"])
+                "--match-test", "^testSubmitted(Seeded|Repaired)\\(\\)$"])
         finally:
             generated.unlink()
         (out / "forge-submission.json").write_text(raw)
