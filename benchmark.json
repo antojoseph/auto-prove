@@ -1,12 +1,20 @@
 {
   "schemaVersion": 1,
   "name": "spec-prove",
-  "description": "Demonstrate contract-requirement violations with replayable transaction contributions: a fail-closed backend verifier replays each submission on a disposable local chain and independently kernel-checks claimed formal refutations. Submissions are data only; participant code is never executed.",
+  "description": "Submit negative cases against a live smart contract and its specification: transaction traces, optionally with attacker contracts that run only inside a disposable local EVM. A host-funded judge decides each case, the first case per root cause earns credit, and accepted cases are repaired automatically into the next challenge version behind a mechanical anti-weakening gate and an independent different-family review. Score = cumulative challenge credit.",
   "category": "AI / smart-contract specifications",
   "direction": "+",
-  "editablePaths": ["submission"],
-  "setupCommand": ["bash", ".yukon/setup.sh"],
-  "benchmarkCommand": ["bash", ".yukon/run.sh"],
+  "editablePaths": [
+    "submission"
+  ],
+  "setupCommand": [
+    "bash",
+    ".yukon/setup.sh"
+  ],
+  "benchmarkCommand": [
+    "bash",
+    ".yukon/run.sh"
+  ],
   "scorePath": ".yukon/score.json",
   "maxSubmissionBytes": 1048576,
   "runner": {

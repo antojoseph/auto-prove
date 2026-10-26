@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "contract_source": {
+      "type": "string"
+    },
+    "model_body": {
+      "type": "string"
+    },
+    "properties_json": {
+      "type": "string"
+    },
+    "requirements_json": {
+      "type": "string"
+    },
+    "probes_json": {
+      "type": "string"
+    },
+    "environment_json": {
+      "type": "string"
+    },
+    "model_map_json": {
+      "type": "string"
+    },
+    "removed_or_relaxed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requirement_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requirement_id",
+          "reason"
+        ]
+      }
+    },
+    "change_summary": {
+      "type": "string"
+    },
+    "reasoning": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_source",
+    "model_body",
+    "properties_json",
+    "requirements_json",
+    "probes_json",
+    "environment_json",
+    "model_map_json",
+    "removed_or_relaxed",
+    "change_summary",
+    "reasoning"
+  ]
+}

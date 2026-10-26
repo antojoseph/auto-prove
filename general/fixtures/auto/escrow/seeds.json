@@ -1,0 +1,89 @@
+[
+  {
+    "description": "A payer deposits and releases its own deposit in two milestones.",
+    "trace": {
+      "version": "transaction-trace-v2",
+      "attacker_source": "",
+      "deployments": [],
+      "actions": [
+        {
+          "account": 0,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "100",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "60"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "40"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        }
+      ]
+    },
+    "expected_success_actions": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "description": "Two payers deposit; one releases its full deposit while the other stays backed.",
+    "trace": {
+      "version": "transaction-trace-v2",
+      "attacker_source": "",
+      "deployments": [],
+      "actions": [
+        {
+          "account": 1,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "50",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "100",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "100"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        }
+      ]
+    },
+    "expected_success_actions": [
+      0,
+      1,
+      2
+    ]
+  }
+]

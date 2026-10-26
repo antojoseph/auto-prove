@@ -1,0 +1,29 @@
+{
+  "version": "auto-challenge-v1",
+  "id": "MilestoneEscrow",
+  "current": 1,
+  "threat_model": {
+    "in_scope": [
+      "Any externally owned account may call any public function, in any order, with any arguments.",
+      "Participants may deploy attacker contracts, including contracts with callbacks, reentrancy, reverting receivers and self-destruct force-sends of ether.",
+      "Time may advance forward between transactions."
+    ],
+    "out_of_scope": [
+      "Reordering or front-running other users' transactions; sandwich attacks.",
+      "Flash-loan-scale capital or external protocols not deployed in the challenge environment.",
+      "Compiler, EVM, consensus or validator misbehaviour."
+    ]
+  },
+  "models": {
+    "judge": "recorded:openai/gpt-6.1-sol",
+    "repair": "recorded:openai/gpt-6.1-sol",
+    "repair_review_judge": "recorded:openai/gpt-6.1-sol",
+    "repair_review": "recorded:anthropic/claude-opus-5.5",
+    "policy_author": "recorded:openai/gpt-6.1-sol",
+    "open_review": "recorded:anthropic/claude-opus-5.5",
+    "proposer": "recorded:openai/gpt-6.1-sol"
+  },
+  "pending_repairs": [],
+  "created_at": "2026-10-26T21:18:33.581387Z",
+  "updated_at": "2026-10-26T21:18:33.583604Z"
+}

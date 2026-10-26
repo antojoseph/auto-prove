@@ -1,0 +1,54 @@
+{
+  "version": "auto-case-v1",
+  "id": "1f4ca6b8e36857f8216040697aff223323de855330d8c078bc493517ba49648e",
+  "material": {
+    "kind": "must_succeed",
+    "trace": {
+      "version": "transaction-trace-v2",
+      "attacker_source": "",
+      "deployments": [],
+      "actions": [
+        {
+          "account": 0,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "100",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "60"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "40"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        }
+      ]
+    },
+    "expected_success_actions": [
+      0,
+      1,
+      2
+    ]
+  },
+  "origin": {
+    "challenge_version": 1,
+    "source": "seed",
+    "description": "A payer deposits and releases its own deposit in two milestones."
+  }
+}

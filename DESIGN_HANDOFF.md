@@ -1,5 +1,7 @@
 # Transaction-grounded specification review: design and handoff
 
+> **Superseded for go-live by the automatic negative-case loop.** See [AUTOLOOP.md](AUTOLOOP.md) (design, gate, hosted workflow, go-live checklist). The v1 contribution benchmark described here is preserved under `challenge/legacy-v1/`.
+
 Status: **local implementation with independently reproduced live transaction replay, creator-review records, a regenerated repaired-source revision with kernel-checked evidence, and a second contract family. Platform (Yukon) submission integration and public/agent-discovered evaluation remain unbuilt.**
 
 This document describes the design, what has been implemented, how another researcher or agent can inspect and test it, and what still needs building. It does not assert that the current code is production-ready or that any contract is secure.

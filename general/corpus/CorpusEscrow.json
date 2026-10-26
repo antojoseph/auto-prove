@@ -1,0 +1,352 @@
+{
+  "input": {
+    "id": "CorpusEscrow",
+    "intent": "Payers escrow funds for milestone work, and the escrow must hold them safely: funds released for a payer must never exceed what that payer deposited, and other payers must keep their deposited funds available in the escrow at all times. Only a payer may release its own deposit.",
+    "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+    "approved_assumptions": []
+  },
+  "environment": {
+    "deployments": [
+      {
+        "name": "main",
+        "contract_name": "MilestoneEscrow",
+        "constructor_arguments": [],
+        "account": 0,
+        "value_wei": "0"
+      }
+    ],
+    "setup": [
+      {
+        "account": 1,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      }
+    ]
+  },
+  "probes": [
+    {
+      "kind": "view",
+      "label": "Deposited",
+      "target": "main",
+      "function": "deposited(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "Released",
+      "target": "main",
+      "function": "released(address)",
+      "arguments": [
+        "$account:0"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "OtherDeposited",
+      "target": "main",
+      "function": "deposited(address)",
+      "arguments": [
+        "$account:1"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "OtherReleased",
+      "target": "main",
+      "function": "released(address)",
+      "arguments": [
+        "$account:1"
+      ]
+    },
+    {
+      "kind": "balance",
+      "label": "Balance",
+      "target": "main"
+    },
+    {
+      "kind": "account_balance",
+      "label": "OutsiderBalance",
+      "account": 2
+    }
+  ],
+  "requirements": [
+    {
+      "id": "OnlyPayerReleases",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "An outside account (account 2 never deposits) can never receive escrowed funds.",
+      "intent_quote": "Only a payer may release its own deposit",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "OutsiderBalance"
+          },
+          10000000000000000000000
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    },
+    {
+      "id": "ReleaseWithinDeposit",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Released never exceeds deposited.",
+      "intent_quote": "funds released for a payer must never exceed what that payer deposited",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "Released"
+          },
+          {
+            "ref": "Deposited"
+          }
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    },
+    {
+      "id": "OtherPayerBacking",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Other payers' unreleased deposits stay backed.",
+      "intent_quote": "other payers must keep their deposited funds available in the escrow at all times",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "op": "sub",
+            "args": [
+              {
+                "ref": "OtherDeposited"
+              },
+              {
+                "ref": "OtherReleased"
+              }
+            ]
+          },
+          {
+            "ref": "Balance"
+          }
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    }
+  ],
+  "seeds": [
+    {
+      "description": "payer releases own deposit in two steps",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 0,
+            "target": "main",
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "60"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "40"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "heldout_seeds": [
+    {
+      "description": "other payer releases its own setup deposit",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:1",
+              "100"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0
+      ]
+    }
+  ],
+  "attacks": [
+    {
+      "name": "double-release",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 0,
+            "target": "main",
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "100",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "100"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "100"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "outsider-release",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 2,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:1",
+              "100"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      }
+    }
+  ],
+  "heldout_attacks": [
+    {
+      "name": "split-overdraw",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 0,
+            "target": "main",
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "50",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "30"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          },
+          {
+            "account": 0,
+            "target": "main",
+            "function": "release(address,uint256)",
+            "arguments": [
+              "$account:0",
+              "30"
+            ],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "name": "safe",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "safe": true
+    },
+    {
+      "name": "no-cumulative-limit",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "safe": false
+    },
+    {
+      "name": "any-caller",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "safe": false
+    }
+  ]
+}

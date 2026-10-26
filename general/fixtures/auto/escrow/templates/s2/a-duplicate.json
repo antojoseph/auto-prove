@@ -1,0 +1,49 @@
+{
+  "contributor": "fixture-solver-beta",
+  "contributor_model": "openai/gpt-6-sol",
+  "kind": "attack",
+  "requirement_ref": {
+    "version": 2,
+    "requirement_id": "ReleaseWithinDeposit"
+  },
+  "claim": "Split releases might still exceed the deposit.",
+  "expected_success_actions": [],
+  "reproduces": "",
+  "trace": {
+    "version": "transaction-trace-v2",
+    "attacker_source": "",
+    "deployments": [],
+    "actions": [
+      {
+        "account": 0,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 0,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "60"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      },
+      {
+        "account": 0,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "60"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      }
+    ]
+  }
+}

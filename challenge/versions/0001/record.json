@@ -1,0 +1,93 @@
+{
+  "summary": "Opened from creator input",
+  "trigger": {
+    "kind": "open"
+  },
+  "open_checks": {
+    "failures": [],
+    "seeds": [
+      {
+        "description": "A payer deposits and releases its own deposit in two milestones.",
+        "status": "passed",
+        "blocked_actions": [],
+        "violated_requirements": [],
+        "checks": {
+          "ReleaseWithinDeposit": "not_demonstrated",
+          "OtherPayerBacking": "not_demonstrated"
+        },
+        "replay_digest": "2147dc6b6a317e887774c2b02ac7d9c25a94e33a2da3651397a7a10b22f03ecd",
+        "reason": null
+      },
+      {
+        "description": "Two payers deposit; one releases its full deposit while the other stays backed.",
+        "status": "passed",
+        "blocked_actions": [],
+        "violated_requirements": [],
+        "checks": {
+          "ReleaseWithinDeposit": "not_demonstrated",
+          "OtherPayerBacking": "not_demonstrated"
+        },
+        "replay_digest": "55a0973541ce3f1ca52973959a725738339dfa3c3ae033b9106f638533fd123f",
+        "reason": null
+      }
+    ],
+    "lean": {
+      "status": "compiled",
+      "reason": null
+    },
+    "differential": {
+      "status": "agrees_on_recorded_traces",
+      "divergences": 0,
+      "modeled_traces": 2,
+      "details": [
+        {
+          "name": "seed-1",
+          "status": "modeled",
+          "divergences": [],
+          "reason": null
+        },
+        {
+          "name": "seed-2",
+          "status": "modeled",
+          "divergences": [],
+          "reason": null
+        }
+      ]
+    }
+  },
+  "open_review": {
+    "reviewed_candidate_digest": "30aa6048961ee83f1f6d1d13dca0b1d8038e91351238060feb675b8bcebca339",
+    "verdict": "approve",
+    "missing_requirements": [],
+    "reasons": "Migration keeps the creator-reviewed v1 requirements verbatim; seeds exercise deposit and own-deposit release; the model map covers both functions."
+  },
+  "models": {
+    "judge": "recorded:openai/gpt-6.1-sol",
+    "repair": "recorded:openai/gpt-6.1-sol",
+    "repair_review_judge": "recorded:openai/gpt-6.1-sol",
+    "repair_review": "recorded:anthropic/claude-opus-5.5",
+    "policy_author": "recorded:openai/gpt-6.1-sol",
+    "open_review": "recorded:anthropic/claude-opus-5.5",
+    "proposer": "recorded:openai/gpt-6.1-sol"
+  },
+  "provider": "recorded_responses_no_inference",
+  "attempts": [
+    {
+      "number": 1,
+      "failures": [],
+      "review": {
+        "reviewed_candidate_digest": "30aa6048961ee83f1f6d1d13dca0b1d8038e91351238060feb675b8bcebca339",
+        "verdict": "approve",
+        "missing_requirements": [],
+        "reasons": "Migration keeps the creator-reviewed v1 requirements verbatim; seeds exercise deposit and own-deposit release; the model map covers both functions."
+      }
+    }
+  ],
+  "credits": [],
+  "challenge_version": 1,
+  "snapshot_digest": "3224e07cd6a289f68526fd0cdc0059caa968b4188cbdcabdb5df7d02bca84e43",
+  "policy_digest": "d3b34ab42fbb1a816bf4837b3fa9f24fb846afdc13e622bd277fb3a74458cc56",
+  "created_at": "2026-10-26T21:18:33.583604Z",
+  "approval": "approved_automatically",
+  "contract_correspondence": "not_proved"
+}

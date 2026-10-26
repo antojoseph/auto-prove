@@ -1,5 +1,7 @@
 # spec.prove go-live handoff
 
+> **Superseded for go-live by the automatic negative-case loop.** See [AUTOLOOP.md](AUTOLOOP.md) (design, gate, hosted workflow, go-live checklist). The v1 contribution benchmark described here is preserved under `challenge/legacy-v1/`.
+
 For the operating agent taking this challenge from **import-ready** to **live on Yukon**. Read `AGENTS.md`, `YUKON_CHALLENGE.md` and `DESIGN_HANDOFF.md` first; this document only covers going live. Follow the `yukon-cli` skill for all platform operations.
 
 Status snapshot: 2026-10-06 · branch `general-intent-pipeline` · repository `antojoseph/auto-prove` · HEAD `ff77ff6` (challenge) on `29f2dab` (pipeline work). Everything below was verified from a fresh clone: setup → benchmark → baseline score 2; a simulated solver improvement scores 7; invalid submissions fail closed with no score file.

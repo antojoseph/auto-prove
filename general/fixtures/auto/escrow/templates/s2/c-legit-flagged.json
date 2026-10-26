@@ -1,0 +1,59 @@
+{
+  "contributor": "fixture-solver-delta",
+  "contributor_model": "anthropic/claude-sonnet-5.5",
+  "kind": "blocked_legitimate",
+  "requirement_ref": null,
+  "claim": "Payers releasing their own deposits trips OtherPayerBacking.",
+  "expected_success_actions": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "reproduces": "",
+  "trace": {
+    "version": "transaction-trace-v2",
+    "attacker_source": "",
+    "deployments": [],
+    "actions": [
+      {
+        "account": 1,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "50",
+        "advance_seconds": 0
+      },
+      {
+        "account": 1,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:1",
+          "50"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      },
+      {
+        "account": 0,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 0,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "100"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      }
+    ]
+  }
+}

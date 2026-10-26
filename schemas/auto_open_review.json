@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "reviewed_candidate_digest": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "reject"
+      ]
+    },
+    "missing_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reasons": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "reviewed_candidate_digest",
+    "verdict",
+    "missing_requirements",
+    "reasons"
+  ]
+}

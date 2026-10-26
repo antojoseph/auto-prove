@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "environment_json": {
+      "type": "string"
+    },
+    "probes_json": {
+      "type": "string"
+    },
+    "requirements_json": {
+      "type": "string"
+    },
+    "must_succeed_json": {
+      "type": "string"
+    },
+    "model_map_json": {
+      "type": "string"
+    },
+    "reasoning": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "environment_json",
+    "probes_json",
+    "requirements_json",
+    "must_succeed_json",
+    "model_map_json",
+    "reasoning"
+  ]
+}

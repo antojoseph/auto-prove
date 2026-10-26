@@ -1,0 +1,6 @@
+{
+  "id": "ReentrantVault",
+  "intent": "Depositors can deposit ether and withdraw their own balance at any time. The vault must always hold enough ether to pay every depositor their recorded balance, even against malicious callers and contracts.",
+  "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n    }\n}\n",
+  "approved_assumptions": []
+}

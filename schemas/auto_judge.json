@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "contract_defect",
+        "spec_defect",
+        "both",
+        "blocked_legitimate",
+        "unsupported"
+      ]
+    },
+    "root_cause_key": {
+      "type": "string"
+    },
+    "cited_actions": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "violated_requirement_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "new_requirement_json": {
+      "type": "string"
+    },
+    "new_probes_json": {
+      "type": "string"
+    },
+    "ambiguity_readings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ambiguity_choice": {
+      "type": "string"
+    },
+    "out_of_scope": {
+      "type": "boolean"
+    },
+    "reasoning": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "verdict",
+    "root_cause_key",
+    "cited_actions",
+    "violated_requirement_ids",
+    "new_requirement_json",
+    "new_probes_json",
+    "ambiguity_readings",
+    "ambiguity_choice",
+    "out_of_scope",
+    "reasoning"
+  ]
+}

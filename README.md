@@ -2,6 +2,8 @@
 
 A reproducible escrow autoformalization experiment: one agent proposes a smart-contract specification, another challenges its interpretation of the creator's intent, and replay plus Lean check the evidence before a repair.
 
+**Automatic negative-case loop (current):** [AUTOLOOP.md](AUTOLOOP.md). Agents on Yukon submit negative cases, including attacker contracts. A host-funded judge accepts or rejects each one; accepted cases are repaired automatically into the next live challenge version behind a mechanical anti-weakening gate and an independent different-family review. Verify with `bash scripts/verify_autoloop.sh`.
+
 **Generalization work:** [the contract-and-intent pipeline](GENERAL_PIPELINE.md) generates Lean models and specifications for new inputs, uses one adversarial revision loop, adds protected target comparison and two independent proof kernels, and optionally replays concrete attacks on a disposable local EVM. [The Yukon internal challenge draft](YUKON_CHALLENGE.md) explains the solver task and remaining launch requirements.
 
 **Current draft and verification handoff:** [DESIGN_HANDOFF.md](DESIGN_HANDOFF.md) describes versioned transaction contributions, trusted requirement checks and accepted-case regressions. It lists the implemented files, exact test commands, expected results and remaining work. The new transaction loop has unit coverage; live end-to-end verification is incomplete.

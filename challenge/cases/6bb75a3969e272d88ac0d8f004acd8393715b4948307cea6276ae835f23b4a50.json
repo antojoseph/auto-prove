@@ -1,0 +1,51 @@
+{
+  "version": "auto-case-v1",
+  "id": "6bb75a3969e272d88ac0d8f004acd8393715b4948307cea6276ae835f23b4a50",
+  "material": {
+    "kind": "must_succeed",
+    "trace": {
+      "version": "transaction-trace-v2",
+      "attacker_source": "",
+      "deployments": [],
+      "actions": [
+        {
+          "account": 1,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "50",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "deposit()",
+          "arguments": [],
+          "value_wei": "100",
+          "advance_seconds": 0
+        },
+        {
+          "account": 0,
+          "target": "main",
+          "function": "release(address,uint256)",
+          "arguments": [
+            "$account:0",
+            "100"
+          ],
+          "value_wei": "0",
+          "advance_seconds": 0
+        }
+      ]
+    },
+    "expected_success_actions": [
+      0,
+      1,
+      2
+    ]
+  },
+  "origin": {
+    "challenge_version": 1,
+    "source": "seed",
+    "description": "Two payers deposit; one releases its full deposit while the other stays backed."
+  }
+}

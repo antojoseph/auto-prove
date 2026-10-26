@@ -1,5 +1,15 @@
 # Reward rules for reviewed contributions (internal draft)
 
+**Automatic loop update (see AUTOLOOP.md).** Credit is now recorded automatically in each challenge's append-only `ledger.jsonl`. Classes and weights (decision D-26):
+
+- new root cause: 1
+- weakening found: 2
+- legitimate action blocked: 1
+- kernel-checked Lean refutation: +5
+- independent reproduction: 0.25, at most 2 per case
+
+The first accepted case per judge-assigned root-cause key earns credit (D-16). Acceptance is the automatic judge's decision, gated mechanically, instead of a maintainer decision (D-2, D-7). The Yukon score is the cumulative ledger total. Credit still never decides formal correctness, and **no payout integration exists**. The rules below remain the draft basis for any rewarded pilot; where they require maintainer acceptance or creator review, automatic challenges substitute the judge, the gate and the independent reviewer.
+
 Status: written rules for a future bounded pilot. **No payout integration exists in this repository, and no monetary reward has been allocated or paid.** The current internal proxy score (`.yukon/rubric.json`, 60% AI-assessed coverage / 40% formally supported coverage) is a development metric, not these rules and not a payout mechanism.
 
 These rules govern credit only. They never decide formal correctness (only the trusted checkers do), never resolve English ambiguity (only a recorded creator decision does), and never approve a contract. Every accepted finding still leaves `accepted: false`, `creator_approval: pending` and `contract_correspondence: not_proved`.

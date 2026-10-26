@@ -1,0 +1,16 @@
+{
+  "judge": [
+    {
+      "verdict": "unsupported",
+      "root_cause_key": "",
+      "cited_actions": [],
+      "violated_requirement_ids": [],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "The original v3 OtherPayerBacking predicate is violated, but only because it counted account 1's already-released deposit. Version 4 corrected it to unreleased deposits, which is what the intent protects. Nothing was weakened."
+    }
+  ]
+}

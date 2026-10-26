@@ -1,0 +1,10 @@
+{
+  "open_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "missing_requirements": [],
+      "reasons": "Migration keeps the creator-reviewed v1 requirements verbatim; seeds exercise deposit and own-deposit release; the model map covers both functions."
+    }
+  ]
+}

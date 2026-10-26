@@ -1,0 +1,186 @@
+{
+  "input": {
+    "id": "CorpusTimelock",
+    "intent": "The deployer locks ether for a beneficiary; nobody can take the funds before the unlock time, and the beneficiary can claim them once at or after the unlock time.",
+    "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Timelock {\n    address public beneficiary;\n    uint256 public unlockTime;\n    bool public paid;\n    constructor(address who, uint256 unlockAt) payable { beneficiary = who; unlockTime = unlockAt; }\n    function claim() external {\n        require(msg.sender == beneficiary);\n        require(block.timestamp >= unlockTime);\n        require(!paid);\n        paid = true;\n        (bool ok,) = beneficiary.call{value: address(this).balance}(\"\"); require(ok);\n    }\n}\n",
+    "approved_assumptions": []
+  },
+  "environment": {
+    "deployments": [
+      {
+        "name": "main",
+        "contract_name": "Timelock",
+        "constructor_arguments": [
+          "$account:1",
+          "$now+86400"
+        ],
+        "account": 0,
+        "value_wei": "1000"
+      }
+    ],
+    "setup": []
+  },
+  "probes": [
+    {
+      "kind": "balance",
+      "label": "Locked",
+      "target": "main"
+    },
+    {
+      "kind": "view",
+      "label": "Unlock",
+      "target": "main",
+      "function": "unlockTime()",
+      "arguments": []
+    },
+    {
+      "kind": "view",
+      "label": "Paid",
+      "target": "main",
+      "function": "paid()",
+      "arguments": []
+    },
+    {
+      "kind": "block_timestamp",
+      "label": "Now"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "LockedUntilPaid",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Funds stay locked until the single claim.",
+      "intent_quote": "nobody can take the funds before the unlock time",
+      "step_scope": "each",
+      "predicate": {
+        "op": "or",
+        "args": [
+          {
+            "op": "eq",
+            "args": [
+              {
+                "ref": "Locked"
+              },
+              1000
+            ]
+          },
+          {
+            "op": "ge",
+            "args": [
+              {
+                "ref": "Now"
+              },
+              {
+                "ref": "Unlock"
+              }
+            ]
+          }
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    }
+  ],
+  "seeds": [
+    {
+      "description": "beneficiary claims after unlock",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "claim()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 86400
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0
+      ]
+    }
+  ],
+  "heldout_seeds": [
+    {
+      "description": "beneficiary claims well after unlock",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "claim()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 200000
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0
+      ]
+    }
+  ],
+  "attacks": [
+    {
+      "name": "early-claim",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "claim()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 10
+          }
+        ]
+      }
+    }
+  ],
+  "heldout_attacks": [
+    {
+      "name": "claim-one-hour-early",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "claim()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 82800
+          }
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "name": "safe",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Timelock {\n    address public beneficiary;\n    uint256 public unlockTime;\n    bool public paid;\n    constructor(address who, uint256 unlockAt) payable { beneficiary = who; unlockTime = unlockAt; }\n    function claim() external {\n        require(msg.sender == beneficiary);\n        require(block.timestamp >= unlockTime);\n        require(!paid);\n        paid = true;\n        (bool ok,) = beneficiary.call{value: address(this).balance}(\"\"); require(ok);\n    }\n}\n",
+      "safe": true
+    },
+    {
+      "name": "no-time-check",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Timelock {\n    address public beneficiary;\n    uint256 public unlockTime;\n    bool public paid;\n    constructor(address who, uint256 unlockAt) payable { beneficiary = who; unlockTime = unlockAt; }\n    function claim() external {\n        require(msg.sender == beneficiary);\n        require(!paid);\n        paid = true;\n        (bool ok,) = beneficiary.call{value: address(this).balance}(\"\"); require(ok);\n    }\n}\n",
+      "safe": false
+    }
+  ]
+}

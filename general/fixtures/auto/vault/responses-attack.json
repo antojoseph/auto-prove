@@ -1,0 +1,54 @@
+{
+  "judge": [
+    {
+      "verdict": "contract_defect",
+      "root_cause_key": "withdraw_reentrancy_before_state_update",
+      "cited_actions": [
+        0
+      ],
+      "violated_requirement_ids": [
+        "VictimBacked"
+      ],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "withdraw() pays before zeroing the balance; the attacker re-enters and is paid twice, leaving 90 wei held against the victim's recorded 100. VictimBacked captures it."
+    }
+  ],
+  "repair": [
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n    }\n}\n",
+      "model_body": "structure VaultState where\n  balanceOf : Nat → Nat\n  totalDeposits : Nat\n  held : Nat\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\ndef depositV (s : VaultState) (who amount : Nat) : VaultState :=\n  { s with balanceOf := put s.balanceOf who (s.balanceOf who + amount),\n           totalDeposits := s.totalDeposits + amount, held := s.held + amount }\n\nabbrev withdrawAllowed (s : VaultState) (who : Nat) : Prop :=\n  0 < s.balanceOf who ∧ s.balanceOf who ≤ s.held\n\ndef withdrawV (s : VaultState) (who : Nat) : VaultState :=\n  if withdrawAllowed s who then\n    { s with balanceOf := put s.balanceOf who 0, totalDeposits := s.totalDeposits - s.balanceOf who,\n             held := s.held - s.balanceOf who }\n  else s",
+      "properties_json": "[{\"id\": \"WithdrawPaysOwnBalance\", \"requirement\": \"A withdrawal pays exactly the caller's recorded balance.\", \"intent_basis\": \"Depositors can withdraw their own balance.\", \"statement\": \"∀ (s : VaultState) (who : Nat), withdrawAllowed s who → (withdrawV s who).held = s.held - s.balanceOf who\", \"explanation\": \"Sequential model: the vault pays the balance and zeroes it in one step. Reentrancy is not modelled.\"}, {\"id\": \"OtherBalancesUnchanged\", \"requirement\": \"A withdrawal never changes another depositor's balance.\", \"intent_basis\": \"Every depositor keeps their recorded balance.\", \"statement\": \"∀ (s : VaultState) (who other : Nat), other ≠ who → (withdrawV s who).balanceOf other = s.balanceOf other\", \"explanation\": \"Only the caller's entry changes.\"}]",
+      "requirements_json": "[{\"id\": \"TotalBacked\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Held ether covers the sum of recorded balances.\", \"intent_quote\": \"The vault must always hold enough ether to pay every depositor their recorded balance\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Total\"}, {\"ref\": \"Held\"}]}, \"origin\": {\"version\": 1, \"source\": \"open\", \"rationale\": \"States the backing protection in the intent.\"}}, {\"id\": \"VictimBacked\", \"scope\": \"spec\", \"property_id\": \"OtherBalancesUnchanged\", \"requirement\": \"An existing depositor's recorded balance stays fully backed by held ether.\", \"intent_quote\": \"The vault must always hold enough ether to pay every depositor their recorded balance\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"VictimBalance\"}, {\"ref\": \"Held\"}]}, \"origin\": {\"version\": 1, \"source\": \"open\", \"rationale\": \"States the backing protection in the intent.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"VictimBalance\", \"target\": \"vault\", \"function\": \"balanceOf(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"view\", \"label\": \"Total\", \"target\": \"vault\", \"function\": \"totalDeposits()\", \"arguments\": []}, {\"kind\": \"balance\", \"label\": \"Held\", \"target\": \"vault\"}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"vault\", \"contract_name\": \"Vault\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": [{\"account\": 1, \"target\": \"vault\", \"function\": \"deposit()\", \"arguments\": [], \"value_wei\": \"100\", \"advance_seconds\": 0}]}",
+      "model_map_json": "{\"state_type\": \"VaultState\", \"initial\": \"VaultState.mk (fun a => if a = 1 then 100 else 0) 100 100\", \"actions\": [{\"target\": \"vault\", \"function\": \"deposit()\", \"term\": \"depositV s $sender $value\"}, {\"target\": \"vault\", \"function\": \"withdraw()\", \"term\": \"withdrawV s $sender\"}], \"observations\": [{\"probe\": \"VictimBalance\", \"term\": \"s.balanceOf 1\"}, {\"probe\": \"Total\", \"term\": \"s.totalDeposits\"}, {\"probe\": \"Held\", \"term\": \"s.held\"}]}",
+      "removed_or_relaxed": [],
+      "change_summary": "withdraw() zeroes the balance before paying (checks-effects-interactions).",
+      "reasoning": "Reordering the two effects before the external call closes reentrancy without changing behaviour for honest users."
+    }
+  ],
+  "repair_review_judge": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Effects precede the interaction; reentry finds a zero balance and reverts."
+    }
+  ],
+  "repair_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Same function, same storage; legitimate withdrawals pass; the sequential model already matches."
+    }
+  ]
+}

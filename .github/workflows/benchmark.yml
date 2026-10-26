@@ -1,15 +1,19 @@
-name: spec.prove contribution benchmark
+name: spec.prove automatic negative-case loop
 on:
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write   # only used to push the challenge-state branch after an automatic run
+# Every run reads and may advance the shared challenge state, so runs are strictly
+# serialized and never cancelled (decision D-27).
 concurrency:
-  group: benchmark-${{ github.ref }}
-  cancel-in-progress: true
+  group: spec-prove-challenge-state
+  cancel-in-progress: false
+env:
+  CHALLENGE_BRANCH: ${{ vars.CHALLENGE_BRANCH || 'challenge-state' }}
 jobs:
   benchmark:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 120
     outputs:
       score: ${{ steps.score.outputs.value }}
     steps:
@@ -22,7 +26,7 @@ jobs:
           persist-credentials: false
       # Yukon enforces editablePaths while constructing the submission commit.
       # Keep this independent check so a malformed submissions/* ref fails
-      # before any runtime is downloaded.
+      # before any runtime is downloaded or any model is called.
       - name: Verify submission surface
         if: startsWith(github.ref, 'refs/heads/submissions/')
         shell: bash
@@ -42,10 +46,50 @@ jobs:
                 ;;
             esac
           done < <(git diff --no-renames --name-only -z "$GITHUB_SHA^" "$GITHUB_SHA")
+      - name: Load authoritative challenge state
+        shell: bash
+        env:
+          REPO_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          origin="https://x-access-token:${REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          rm -rf "$RUNNER_TEMP/state"
+          if git ls-remote --exit-code --heads "$origin" "$CHALLENGE_BRANCH" >/dev/null; then
+            git clone --quiet --depth 1 --branch "$CHALLENGE_BRANCH" "$origin" "$RUNNER_TEMP/state"
+          else
+            # First run: seed the state branch from this commit's challenge/.
+            mkdir -p "$RUNNER_TEMP/state" && cp -R challenge "$RUNNER_TEMP/state/challenge"
+            git -C "$RUNNER_TEMP/state" init --quiet -b "$CHALLENGE_BRANCH"
+            git -C "$RUNNER_TEMP/state" remote add origin "$origin"
+          fi
+          echo "AUTO_PROVE_CHALLENGE_DIR=$RUNNER_TEMP/state/challenge" >> "$GITHUB_ENV"
+          # Submission time decides stale (resubmit) versus queued (rebase) per D-23/D-27.
+          python3 - >> "$GITHUB_ENV" <<'PY'
+          import datetime, subprocess
+          stamp = subprocess.check_output(['git', 'log', '-1', '--format=%cI']).decode().strip()
+          moment = datetime.datetime.fromisoformat(stamp).astimezone(datetime.timezone.utc)
+          print('AUTO_PROVE_SUBMITTED_AT=' + moment.strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
+          PY
       - name: Setup pinned runtimes and the isolated verifier
         run: bash .yukon/setup.sh
-      - name: Benchmark (fail-closed replay and kernel checks)
+      - name: Automatic loop (replay, judge, credit, repair, gate, next version)
+        env:
+          AUTO_PROVE_HOSTED: '1'
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: bash .yukon/run.sh
+      - name: Publish challenge state
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/state"
+          git config user.name 'spec-prove automatic loop'
+          git config user.email 'spec-prove-loop@users.noreply.github.com'
+          git add -A challenge
+          if git diff --cached --quiet; then echo "challenge state unchanged"; exit 0; fi
+          version="$(python3 -c 'import json; print(json.load(open("challenge/challenge.json"))["current"])')"
+          git commit --quiet -m "Challenge state after ${GITHUB_SHA::12}: version ${version}"
+          git push --quiet origin "HEAD:${CHALLENGE_BRANCH}"
       - name: Read score
         id: score
         if: success()
@@ -67,5 +111,6 @@ jobs:
           path: |
             .yukon/runs/
             !.yukon/runs/**/score.json
+            !.yukon/runs/**/payload.json
           include-hidden-files: true
           if-no-files-found: ignore

@@ -1,0 +1,56 @@
+{
+  "judge": [
+    {
+      "verdict": "contract_defect",
+      "root_cause_key": "missing_cumulative_release_limit",
+      "cited_actions": [
+        2,
+        3
+      ],
+      "violated_requirement_ids": [
+        "ReleaseWithinDeposit",
+        "OtherPayerBacking"
+      ],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "Account 0 deposited 100 but two releases of 100 against it succeed: released reaches 200 and the second payout spends account 1's deposit. release() checks each amount against the deposit instead of the cumulative released total. Both current requirements capture this."
+    }
+  ],
+  "repair": [
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.released payer + amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties_json": "[{\"id\": \"EscrowDepositCredit\", \"requirement\": \"A successful deposit credits exactly the deposited amount to the payer.\", \"intent_basis\": \"Payers escrow funds for milestone work; deposit accounting must be exact.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount\", \"explanation\": \"Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping.\"}, {\"id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer's deposits.\", \"intent_basis\": \"Funds released for a payer must never exceed what that payer deposited.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer amount → (releaseE s payer amount true).released payer ≤ (releaseE s payer amount true).deposited payer\", \"explanation\": \"The cumulative release guard (released + amount <= deposited) makes this target hold over the model.\"}]",
+      "requirements_json": "[{\"id\": \"ReleaseWithinDeposit\", \"scope\": \"spec\", \"property_id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer deposits.\", \"intent_quote\": \"funds released for a payer must never exceed what that payer deposited\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Released\"}, {\"ref\": \"Deposited\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OtherPayerBacking\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Other payers' deposits must remain available in the escrow after any release.\", \"intent_quote\": \"other payers must keep their deposited funds available in the escrow at all times\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OtherDeposited\"}, {\"ref\": \"Balance\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"Deposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"Released\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"OtherDeposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"balance\", \"label\": \"Balance\", \"target\": \"main\"}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"MilestoneEscrow\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": []}",
+      "model_map_json": "{\"state_type\": \"EscrowState\", \"initial\": \"EscrowState.mk (fun _ => 0) (fun _ => 0)\", \"actions\": [{\"target\": \"main\", \"function\": \"deposit()\", \"term\": \"depositE s $sender $value\"}, {\"target\": \"main\", \"function\": \"release(address,uint256)\", \"term\": \"releaseE s $arg0 $arg1 true\"}], \"observations\": [{\"probe\": \"Deposited\", \"term\": \"s.deposited 0\"}, {\"probe\": \"Released\", \"term\": \"s.released 0\"}, {\"probe\": \"OtherDeposited\", \"term\": \"s.deposited 1\"}]}",
+      "removed_or_relaxed": [],
+      "change_summary": "release() enforces a cumulative limit: released + amount <= deposited.",
+      "reasoning": "Minimal one-line guard change; the model guard matches it so ReleasedWithinDeposit holds over the model."
+    }
+  ],
+  "repair_review_judge": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Fixes the root cause in the guard; no requirement changed; seeds and regressions pass."
+    }
+  ],
+  "repair_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "One-line guard change, storage unchanged, protections intact; legitimate partial releases still work."
+    }
+  ]
+}

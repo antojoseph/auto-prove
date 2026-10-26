@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parent
 
 
 def challenge_files():
-    snapshot = read(ROOT/'challenge/snapshot.json')
-    policy = read(ROOT/'challenge/policy.json')
-    contribution = read(ROOT/'submission/contributions/baseline-double-release.json')
+    snapshot = read(ROOT/'challenge/legacy-v1/snapshot.json')
+    policy = read(ROOT/'challenge/legacy-v1/policy.json')
+    contribution = read(ROOT/'general/fixtures/legacy-v1-submission/contributions/baseline-double-release.json')
     return snapshot, policy, contribution
 
 
@@ -47,7 +47,7 @@ class ContributionBenchmarkTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output:
             with patch('general.contribution_benchmark.adjudicate', side_effect=adjudator), \
                  patch('general.contribution_benchmark.evidence', side_effect=evidencer):
-                return contribution_benchmark.score(Path(ROOT/'challenge'), submission, Path(output)/'evidence',
+                return contribution_benchmark.score(Path(ROOT/'challenge/legacy-v1'), submission, Path(output)/'evidence',
                                                     Path(folder)/'score.json')
 
     def test_baseline_scores_both_requirement_pairs(self):
@@ -75,7 +75,7 @@ class ContributionBenchmarkTests(unittest.TestCase):
                  patch('general.contribution_benchmark.adjudicate', side_effect=lambda *a: report()), \
                  patch('general.contribution_benchmark.evidence', return_value=unchecked):
                 with self.assertRaisesRegex(SystemExit, 'kernel-checked'):
-                    contribution_benchmark.score(Path(ROOT/'challenge'), submission, Path(output)/'evidence',
+                    contribution_benchmark.score(Path(ROOT/'challenge/legacy-v1'), submission, Path(output)/'evidence',
                                                 Path(folder)/'score.json')
             self.assertFalse((Path(folder)/'score.json').exists())
 
@@ -85,7 +85,7 @@ class ContributionBenchmarkTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as output, \
                  patch('general.contribution_benchmark.adjudicate', side_effect=lambda *a: report(both=False)):
                 with self.assertRaisesRegex(SystemExit, 'does not demonstrate'):
-                    contribution_benchmark.score(Path(ROOT/'challenge'), submission, Path(output)/'evidence',
+                    contribution_benchmark.score(Path(ROOT/'challenge/legacy-v1'), submission, Path(output)/'evidence',
                                                 Path(folder)/'score.json')
             self.assertFalse((Path(folder)/'score.json').exists())
 
@@ -95,7 +95,7 @@ class ContributionBenchmarkTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as output, \
                  patch('general.contribution_benchmark.adjudicate', side_effect=lambda *a: report(replayed=False)):
                 with self.assertRaisesRegex(SystemExit, 'inconclusive'):
-                    contribution_benchmark.score(Path(ROOT/'challenge'), submission, Path(output)/'evidence',
+                    contribution_benchmark.score(Path(ROOT/'challenge/legacy-v1'), submission, Path(output)/'evidence',
                                                 Path(folder)/'score.json')
             self.assertFalse((Path(folder)/'score.json').exists())
 

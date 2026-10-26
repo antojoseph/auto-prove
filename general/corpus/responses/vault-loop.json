@@ -1,0 +1,62 @@
+{
+  "open_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "missing_requirements": [],
+      "reasons": "Corpus ground-truth policy."
+    }
+  ],
+  "judge": [
+    {
+      "verdict": "contract_defect",
+      "root_cause_key": "withdraw_reentrancy_before_state_update",
+      "cited_actions": [
+        0
+      ],
+      "violated_requirement_ids": [
+        "VictimBacked"
+      ],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "Recorded mechanism fixture: reentrant withdraw pays twice before zeroing the balance."
+    }
+  ],
+  "repair": [
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract Vault {\n    mapping(address => uint256) public balanceOf;\n    uint256 public totalDeposits;\n    function deposit() external payable {\n        balanceOf[msg.sender] += msg.value;\n        totalDeposits += msg.value;\n    }\n    function withdraw() external {\n        uint256 amount = balanceOf[msg.sender];\n        require(amount > 0);\n        balanceOf[msg.sender] = 0;\n        totalDeposits -= amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\");\n        require(ok);\n    }\n}\n",
+      "model_body": "def corpusPlaceholder (n : Nat) : Nat := n",
+      "properties_json": "[{\"id\": \"Placeholder\", \"requirement\": \"Corpus placeholder\", \"intent_basis\": \"Evaluation harness only\", \"statement\": \"∀ n : Nat, corpusPlaceholder n = n\", \"explanation\": \"Not a security property\"}]",
+      "requirements_json": "[{\"id\": \"TotalBacked\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Held ether covers recorded balances.\", \"intent_quote\": \"The vault must always hold enough ether to pay every depositor their recorded balance\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Total\"}, {\"ref\": \"Held\"}]}, \"origin\": {\"version\": 1, \"source\": \"open\", \"rationale\": \"Corpus ground truth.\"}}, {\"id\": \"VictimBacked\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"An existing depositor stays fully backed.\", \"intent_quote\": \"The vault must always hold enough ether to pay every depositor their recorded balance\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"VictimBalance\"}, {\"ref\": \"Held\"}]}, \"origin\": {\"version\": 1, \"source\": \"open\", \"rationale\": \"Corpus ground truth.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"VictimBalance\", \"target\": \"main\", \"function\": \"balanceOf(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"view\", \"label\": \"Total\", \"target\": \"main\", \"function\": \"totalDeposits()\", \"arguments\": []}, {\"kind\": \"balance\", \"label\": \"Held\", \"target\": \"main\"}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"Vault\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": [{\"account\": 1, \"target\": \"main\", \"function\": \"deposit()\", \"arguments\": [], \"value_wei\": \"100\", \"advance_seconds\": 0}]}",
+      "model_map_json": "null",
+      "removed_or_relaxed": [],
+      "change_summary": "Zero the balance before the external call.",
+      "reasoning": "Checks-effects-interactions."
+    }
+  ],
+  "repair_review_judge": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Effects before interaction; nothing else changes."
+    }
+  ],
+  "repair_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Effects before interaction; nothing else changes."
+    }
+  ]
+}

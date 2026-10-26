@@ -1,0 +1,162 @@
+{
+  "judge": [
+    {
+      "verdict": "unsupported",
+      "root_cause_key": "",
+      "cited_actions": [],
+      "violated_requirement_ids": [],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "The payer releases 60 twice against a 100 deposit; the second release reverts under the cumulative limit. No requirement is violated and no intent violation is shown."
+    },
+    {
+      "verdict": "both",
+      "root_cause_key": "release_by_non_payer",
+      "cited_actions": [
+        2
+      ],
+      "violated_requirement_ids": [],
+      "new_requirement_json": "{\"id\": \"OutsiderGainsNothing\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Releasing escrowed funds must never pay an outside party that deposited nothing (account 2 never deposits).\", \"intent_quote\": \"the escrow must hold them safely\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OutsiderBalance\"}, 10000000000000000000000]}, \"origin\": {\"version\": 3, \"source\": \"judge\", \"rationale\": \"Ambiguity resolved toward the payer at risk: holding funds safely means only the payer can release its deposit.\"}}",
+      "new_probes_json": "[{\"kind\": \"account_balance\", \"label\": \"OutsiderBalance\", \"account\": 2}]",
+      "ambiguity_readings": [
+        "Anyone may trigger a release and receive the funds as the milestone recipient.",
+        "Only the payer may release its own deposit; an outside party must never receive escrowed funds."
+      ],
+      "ambiguity_choice": "Only the payer may release its own deposit; an outside party must never receive escrowed funds.",
+      "out_of_scope": false,
+      "reasoning": "Account 2 never deposited, yet it releases account 1's deposit and receives the 100 wei. No current requirement observes who receives released funds. The intent is ambiguous about the recipient; the reading that protects the payer at risk is that only the payer can release its own deposit."
+    },
+    {
+      "verdict": "spec_defect",
+      "root_cause_key": "other_payer_backing_ignores_releases",
+      "cited_actions": [
+        1,
+        3
+      ],
+      "violated_requirement_ids": [
+        "OtherPayerBacking"
+      ],
+      "new_requirement_json": "",
+      "new_probes_json": "",
+      "ambiguity_readings": [],
+      "ambiguity_choice": "",
+      "out_of_scope": false,
+      "reasoning": "Every action is legitimate: account 1 releases its own 50 and account 0 releases its own 100. OtherPayerBacking still compares account 1's gross deposit (50) to the empty balance, so it flags a payer whose funds were already returned. Intent protects funds other payers still have in escrow, i.e. deposited minus released."
+    }
+  ],
+  "repair": [
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == address(this));\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (caller payer amount : Nat) : Prop :=\n  caller = payer ∧ s.released payer + amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (caller payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s caller payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties_json": "[{\"id\": \"EscrowDepositCredit\", \"requirement\": \"A successful deposit credits exactly the deposited amount to the payer.\", \"intent_basis\": \"Payers escrow funds for milestone work; deposit accounting must be exact.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount\", \"explanation\": \"Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping.\"}, {\"id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer's deposits.\", \"intent_basis\": \"Funds released for a payer must never exceed what that payer deposited.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer payer amount → (releaseE s payer payer amount true).released payer ≤ (releaseE s payer payer amount true).deposited payer\", \"explanation\": \"The cumulative release guard (released + amount <= deposited) makes this target hold over the model. Release is modelled with its caller; the payer releasing its own deposit is the guarded case.\"}]",
+      "requirements_json": "[{\"id\": \"ReleaseWithinDeposit\", \"scope\": \"spec\", \"property_id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer deposits.\", \"intent_quote\": \"funds released for a payer must never exceed what that payer deposited\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Released\"}, {\"ref\": \"Deposited\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OtherPayerBacking\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Other payers' deposits must remain available in the escrow after any release.\", \"intent_quote\": \"other payers must keep their deposited funds available in the escrow at all times\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OtherDeposited\"}, {\"ref\": \"Balance\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OutsiderGainsNothing\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Releasing escrowed funds must never pay an outside party that deposited nothing (account 2 never deposits).\", \"intent_quote\": \"the escrow must hold them safely\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OutsiderBalance\"}, 10000000000000000000000]}, \"origin\": {\"version\": 3, \"source\": \"judge\", \"rationale\": \"Ambiguity resolved toward the payer at risk: holding funds safely means only the payer can release its deposit.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"Deposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"Released\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"OtherDeposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"balance\", \"label\": \"Balance\", \"target\": \"main\"}, {\"kind\": \"account_balance\", \"label\": \"OutsiderBalance\", \"account\": 2}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"MilestoneEscrow\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": []}",
+      "model_map_json": "{\"state_type\": \"EscrowState\", \"initial\": \"EscrowState.mk (fun _ => 0) (fun _ => 0)\", \"actions\": [{\"target\": \"main\", \"function\": \"deposit()\", \"term\": \"depositE s $sender $value\"}, {\"target\": \"main\", \"function\": \"release(address,uint256)\", \"term\": \"releaseE s $sender $arg0 $arg1 true\"}], \"observations\": [{\"probe\": \"Deposited\", \"term\": \"s.deposited 0\"}, {\"probe\": \"Released\", \"term\": \"s.released 0\"}, {\"probe\": \"OtherDeposited\", \"term\": \"s.deposited 1\"}]}",
+      "removed_or_relaxed": [],
+      "change_summary": "release() only callable by the escrow itself.",
+      "reasoning": "Blocks outside releases."
+    },
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (caller payer amount : Nat) : Prop :=\n  caller = payer ∧ s.released payer + amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (caller payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s caller payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties_json": "[{\"id\": \"EscrowDepositCredit\", \"requirement\": \"A successful deposit credits exactly the deposited amount to the payer.\", \"intent_basis\": \"Payers escrow funds for milestone work; deposit accounting must be exact.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount\", \"explanation\": \"Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping.\"}, {\"id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer's deposits.\", \"intent_basis\": \"Funds released for a payer must never exceed what that payer deposited.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer payer amount → (releaseE s payer payer amount true).released payer ≤ (releaseE s payer payer amount true).deposited payer\", \"explanation\": \"The cumulative release guard (released + amount <= deposited) makes this target hold over the model. Release is modelled with its caller; the payer releasing its own deposit is the guarded case.\"}]",
+      "requirements_json": "[{\"id\": \"ReleaseWithinDeposit\", \"scope\": \"spec\", \"property_id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer deposits.\", \"intent_quote\": \"funds released for a payer must never exceed what that payer deposited\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Released\"}, {\"ref\": \"Deposited\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OtherPayerBacking\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Other payers' deposits must remain available in the escrow after any release.\", \"intent_quote\": \"other payers must keep their deposited funds available in the escrow at all times\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OtherDeposited\"}, {\"ref\": \"Balance\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OutsiderGainsNothing\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Releasing escrowed funds must never pay an outside party that deposited nothing (account 2 never deposits).\", \"intent_quote\": \"the escrow must hold them safely\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OutsiderBalance\"}, 10000000000000000000000]}, \"origin\": {\"version\": 3, \"source\": \"judge\", \"rationale\": \"Ambiguity resolved toward the payer at risk: holding funds safely means only the payer can release its deposit.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"Deposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"Released\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"OtherDeposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"balance\", \"label\": \"Balance\", \"target\": \"main\"}, {\"kind\": \"account_balance\", \"label\": \"OutsiderBalance\", \"account\": 2}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"MilestoneEscrow\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": []}",
+      "model_map_json": "{\"state_type\": \"EscrowState\", \"initial\": \"EscrowState.mk (fun _ => 0) (fun _ => 0)\", \"actions\": [{\"target\": \"main\", \"function\": \"deposit()\", \"term\": \"depositE s $sender $value\"}, {\"target\": \"main\", \"function\": \"release(address,uint256)\", \"term\": \"releaseE s $sender $arg0 $arg1 true\"}], \"observations\": [{\"probe\": \"Deposited\", \"term\": \"s.deposited 0\"}, {\"probe\": \"Released\", \"term\": \"s.released 0\"}, {\"probe\": \"OtherDeposited\", \"term\": \"s.deposited 1\"}]}",
+      "removed_or_relaxed": [],
+      "change_summary": "release() requires msg.sender == payer; model release takes its caller.",
+      "reasoning": "Smallest change that stops outside parties from releasing a payer's deposit while payers keep releasing their own."
+    },
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (caller payer amount : Nat) : Prop :=\n  caller = payer ∧ s.released payer + amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (caller payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s caller payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties_json": "[{\"id\": \"EscrowDepositCredit\", \"requirement\": \"A successful deposit credits exactly the deposited amount to the payer.\", \"intent_basis\": \"Payers escrow funds for milestone work; deposit accounting must be exact.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount\", \"explanation\": \"Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping.\"}, {\"id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer's deposits.\", \"intent_basis\": \"Funds released for a payer must never exceed what that payer deposited.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer payer amount → (releaseE s payer payer amount true).released payer ≤ (releaseE s payer payer amount true).deposited payer\", \"explanation\": \"The cumulative release guard (released + amount <= deposited) makes this target hold over the model. Release is modelled with its caller; the payer releasing its own deposit is the guarded case.\"}]",
+      "requirements_json": "[{\"id\": \"ReleaseWithinDeposit\", \"scope\": \"spec\", \"property_id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer deposits.\", \"intent_quote\": \"funds released for a payer must never exceed what that payer deposited\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Released\"}, {\"ref\": \"Deposited\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OutsiderGainsNothing\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Releasing escrowed funds must never pay an outside party that deposited nothing (account 2 never deposits).\", \"intent_quote\": \"the escrow must hold them safely\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OutsiderBalance\"}, 10000000000000000000000]}, \"origin\": {\"version\": 3, \"source\": \"judge\", \"rationale\": \"Ambiguity resolved toward the payer at risk: holding funds safely means only the payer can release its deposit.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"Deposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"Released\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"OtherDeposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"balance\", \"label\": \"Balance\", \"target\": \"main\"}, {\"kind\": \"account_balance\", \"label\": \"OutsiderBalance\", \"account\": 2}, {\"kind\": \"view\", \"label\": \"OtherReleased\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:1\"]}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"MilestoneEscrow\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": []}",
+      "model_map_json": "{\"state_type\": \"EscrowState\", \"initial\": \"EscrowState.mk (fun _ => 0) (fun _ => 0)\", \"actions\": [{\"target\": \"main\", \"function\": \"deposit()\", \"term\": \"depositE s $sender $value\"}, {\"target\": \"main\", \"function\": \"release(address,uint256)\", \"term\": \"releaseE s $sender $arg0 $arg1 true\"}], \"observations\": [{\"probe\": \"Deposited\", \"term\": \"s.deposited 0\"}, {\"probe\": \"Released\", \"term\": \"s.released 0\"}, {\"probe\": \"OtherDeposited\", \"term\": \"s.deposited 1\"}]}",
+      "removed_or_relaxed": [
+        {
+          "requirement_id": "OtherPayerBacking",
+          "reason": "false alarms"
+        }
+      ],
+      "change_summary": "Remove OtherPayerBacking, which flags legitimate releases.",
+      "reasoning": "The requirement produces false alarms."
+    },
+    {
+      "contract_source": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\ncontract MilestoneEscrow {\n    mapping(address => uint256) public deposited;\n    mapping(address => uint256) public released;\n    function deposit() external payable { deposited[msg.sender] += msg.value; }\n    function release(address payer, uint256 amount) external {\n        require(msg.sender == payer);\n        require(released[payer] + amount <= deposited[payer]);\n        released[payer] += amount;\n        (bool ok,) = msg.sender.call{value: amount}(\"\"); require(ok);\n    }\n}\n",
+      "model_body": "structure EscrowState where\n  deposited : Nat → Nat\n  released : Nat → Nat\n\ndef maxUint : Nat := 2 ^ 256 - 1\n\ndef put (f : Nat → Nat) (who value : Nat) : Nat → Nat :=\n  fun a => if a = who then value else f a\n\nabbrev depositAllowed (s : EscrowState) (payer amount : Nat) : Prop :=\n  s.deposited payer + amount ≤ maxUint\n\ndef depositE (s : EscrowState) (payer amount : Nat) : EscrowState :=\n  if depositAllowed s payer amount then\n    { s with deposited := put s.deposited payer (s.deposited payer + amount) }\n  else s\n\nabbrev releaseAllowed (s : EscrowState) (caller payer amount : Nat) : Prop :=\n  caller = payer ∧ s.released payer + amount ≤ s.deposited payer\n\ndef releaseE (s : EscrowState) (caller payer amount : Nat) (accepts : Bool) : EscrowState :=\n  if releaseAllowed s caller payer amount ∧ accepts = true then\n    { s with released := put s.released payer (s.released payer + amount) }\n  else s",
+      "properties_json": "[{\"id\": \"EscrowDepositCredit\", \"requirement\": \"A successful deposit credits exactly the deposited amount to the payer.\", \"intent_basis\": \"Payers escrow funds for milestone work; deposit accounting must be exact.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), depositAllowed s payer amount → (depositE s payer amount).deposited payer = s.deposited payer + amount\", \"explanation\": \"Maps the Solidity deposit() credit to the abstract deposit step on the payer mapping.\"}, {\"id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer's deposits.\", \"intent_basis\": \"Funds released for a payer must never exceed what that payer deposited.\", \"statement\": \"∀ (s : EscrowState) (payer amount : Nat), s.released payer ≤ s.deposited payer → releaseAllowed s payer payer amount → (releaseE s payer payer amount true).released payer ≤ (releaseE s payer payer amount true).deposited payer\", \"explanation\": \"The cumulative release guard (released + amount <= deposited) makes this target hold over the model. Release is modelled with its caller; the payer releasing its own deposit is the guarded case.\"}]",
+      "requirements_json": "[{\"id\": \"ReleaseWithinDeposit\", \"scope\": \"spec\", \"property_id\": \"ReleasedWithinDeposit\", \"requirement\": \"Released funds for a payer must never exceed that payer deposits.\", \"intent_quote\": \"funds released for a payer must never exceed what that payer deposited\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"Released\"}, {\"ref\": \"Deposited\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OtherPayerBacking\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Other payers' unreleased deposits must remain available in the escrow after any release.\", \"intent_quote\": \"other payers must keep their deposited funds available in the escrow at all times\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"op\": \"sub\", \"args\": [{\"ref\": \"OtherDeposited\"}, {\"ref\": \"OtherReleased\"}]}, {\"ref\": \"Balance\"}]}, \"origin\": {\"version\": 1, \"source\": \"migrated\", \"rationale\": \"Creator-reviewed in v1 policy f2979baeb900c45b by internal-fixture-maintainer\"}}, {\"id\": \"OutsiderGainsNothing\", \"scope\": \"intent\", \"property_id\": \"\", \"requirement\": \"Releasing escrowed funds must never pay an outside party that deposited nothing (account 2 never deposits).\", \"intent_quote\": \"the escrow must hold them safely\", \"step_scope\": \"each\", \"predicate\": {\"op\": \"le\", \"args\": [{\"ref\": \"OutsiderBalance\"}, 10000000000000000000000]}, \"origin\": {\"version\": 3, \"source\": \"judge\", \"rationale\": \"Ambiguity resolved toward the payer at risk: holding funds safely means only the payer can release its deposit.\"}}]",
+      "probes_json": "[{\"kind\": \"view\", \"label\": \"Deposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"Released\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:0\"]}, {\"kind\": \"view\", \"label\": \"OtherDeposited\", \"target\": \"main\", \"function\": \"deposited(address)\", \"arguments\": [\"$account:1\"]}, {\"kind\": \"balance\", \"label\": \"Balance\", \"target\": \"main\"}, {\"kind\": \"account_balance\", \"label\": \"OutsiderBalance\", \"account\": 2}, {\"kind\": \"view\", \"label\": \"OtherReleased\", \"target\": \"main\", \"function\": \"released(address)\", \"arguments\": [\"$account:1\"]}]",
+      "environment_json": "{\"deployments\": [{\"name\": \"main\", \"contract_name\": \"MilestoneEscrow\", \"constructor_arguments\": [], \"account\": 0, \"value_wei\": \"0\"}], \"setup\": []}",
+      "model_map_json": "{\"state_type\": \"EscrowState\", \"initial\": \"EscrowState.mk (fun _ => 0) (fun _ => 0)\", \"actions\": [{\"target\": \"main\", \"function\": \"deposit()\", \"term\": \"depositE s $sender $value\"}, {\"target\": \"main\", \"function\": \"release(address,uint256)\", \"term\": \"releaseE s $sender $arg0 $arg1 true\"}], \"observations\": [{\"probe\": \"Deposited\", \"term\": \"s.deposited 0\"}, {\"probe\": \"Released\", \"term\": \"s.released 0\"}, {\"probe\": \"OtherDeposited\", \"term\": \"s.deposited 1\"}]}",
+      "removed_or_relaxed": [
+        {
+          "requirement_id": "OtherPayerBacking",
+          "reason": "Relaxed to unreleased deposits: the intent protects funds still in escrow."
+        }
+      ],
+      "change_summary": "OtherPayerBacking compares unreleased deposits (deposited - released) to the balance.",
+      "reasoning": "Corrects the predicate to the protection the intent states; adds the OtherReleased probe."
+    }
+  ],
+  "repair_review_judge": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Payer-only release fixes the outsider drain; seeds still release their own deposits."
+    },
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Removing the noisy requirement stops the false alarm."
+    },
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Predicate now tracks unreleased deposits, matching intent; nothing else changes."
+    }
+  ],
+  "repair_review": [
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Minimal guard; storage unchanged; model and map updated consistently."
+    },
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "reject",
+      "weakening_found": true,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Deleting OtherPayerBacking removes the only protection for other payers' funds; the intent requires it. Correct the predicate instead."
+    },
+    {
+      "reviewed_candidate_digest": "$PAYLOAD:reviewed_candidate_digest",
+      "verdict": "approve",
+      "weakening_found": false,
+      "unrelated_changes": false,
+      "over_restrictive": false,
+      "reasons": "Relaxation is exactly to unreleased deposits; other payers stay protected; no other change."
+    }
+  ]
+}

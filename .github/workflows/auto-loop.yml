@@ -1,0 +1,56 @@
+name: Automatic negative-case loop
+on:
+  push:
+    paths:
+      - 'general/**'
+      - 'prompts/auto_*'
+      - 'schemas/auto_*'
+      - 'challenge/**'
+      - 'test_autoloop.py'
+      - 'scripts/verify_autoloop.*'
+      - '.github/workflows/auto-loop.yml'
+  pull_request:
+    paths:
+      - 'general/**'
+      - 'prompts/auto_*'
+      - 'schemas/auto_*'
+      - 'challenge/**'
+      - 'test_autoloop.py'
+      - 'scripts/verify_autoloop.*'
+      - '.github/workflows/auto-loop.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  auto-loop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+      - name: Install pinned Solidity 0.8.28 (checksum-verified)
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --location \
+            https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.28+commit.7893614a \
+            --output "$RUNNER_TEMP/solc"
+          echo "9a0fb7e0db2c0641dbae1c5cc645dc686820c83af516226abb1c0a2f76636f25  $RUNNER_TEMP/solc" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/solc"
+          echo "AUTO_PROVE_SOLC=$RUNNER_TEMP/solc" >> "$GITHUB_ENV"
+      - name: Build pinned isolated verifier
+        run: docker build -t auto-prove-verifier:lean4.35.0-rc2 general/verifier
+      # Recorded, developer-authored role responses only: no model account or secret is used here.
+      - name: Verify the automatic loop end to end
+        run: bash scripts/verify_autoloop.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auto-loop-evidence
+          path: runs/reproduced-autoloop-*/

@@ -1,0 +1,17 @@
+SHARED FORMATS (all JSON strings you return must parse exactly; the host validates every field and rejects anything else).
+
+Predicate (bounded JSON expression over trusted probe values): an integer, a boolean, {"ref": "<ProbeLabel>"} or {"op": OP, "args": [...]} with OP in eq ne lt le gt ge add sub mul (two args) and and or (two boolean args) and not (one boolean arg). Depth <= 8, at most 128 nodes. A requirement HOLDS when its predicate evaluates to true; a frame where it is false is a violation.
+
+Requirement: {"id": "CamelCaseId", "scope": "spec" | "intent", "property_id": "<Lean property id for spec scope, else empty string>", "requirement": "<English normative statement>", "intent_quote": "<exact substring of the creator intent>", "step_scope": "each" | "final" | "after:<function signature>", "predicate": <predicate>, "origin": {"version": <int>, "source": "open" | "judge" | "repair" | "migrated", "rationale": "<why this requirement follows from intent>"}}. step_scope "each" checks the frame after deployment/setup and after every submitted action.
+
+Probe: {"kind": "view", "label": "Label", "target": "<challenge deployment name>", "function": "name(type,...)", "arguments": ["..."]} reading one scalar uint/int/bool/address view; {"kind": "balance", "label": "Label", "target": "<challenge deployment name>"} reading a contract's ether balance; {"kind": "account_balance", "label": "Label", "account": <0-9>} reading a local account's ether balance; {"kind": "block_timestamp", "label": "Label"} reading the latest block timestamp. Gas is free on the local chain, so account balances change only by value transfers.
+
+Argument strings: decimal integers, "true"/"false", "$account:<0-9>", "$deployment:<name>", "$contract" (first challenge deployment) or "$now+<seconds>" (latest block timestamp plus seconds).
+
+Environment (trusted, owned by the host): {"deployments": [{"name": "main", "contract_name": "<contract in creator source>", "constructor_arguments": [...], "account": <0-9>, "value_wei": "<decimal>"}], "setup": [<action>, ...]}. Setup actions run after deployment and must all succeed.
+
+Action: {"account": <0-9>, "target": "<deployment name>", "function": "name(type,...)" or "" for plain ether transfer, "arguments": [...], "value_wei": "<decimal>", "advance_seconds": <non-negative int, time moves forward before the call>}.
+
+Trace: {"version": "transaction-trace-v2", "attacker_source": "<participant Solidity or empty>", "deployments": [<attacker deployments>], "actions": [<action>, ...]}.
+
+Model map (optional differential check between the Lean model and the EVM): {"state_type": "<Lean structure name>", "initial": "<single-line Lean term without :=>", "actions": [{"target": "main", "function": "sig(...)", "term": "<Lean term over pre-state s, e.g. depositE s $sender $value>"}], "observations": [{"probe": "<probe label>", "term": "<Lean term over s, e.g. s.deposited 0>"}]}. Placeholders: $sender (account index), $value (wei), $time (block timestamp), $arg0..$arg19 (numeric or boolean arguments; $account:i becomes i, deployment k becomes 1000+k). Model reverting calls as no-ops. Use the literal string "null" for no model map.

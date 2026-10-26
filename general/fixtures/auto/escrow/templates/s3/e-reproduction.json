@@ -1,0 +1,54 @@
+{
+  "contributor": "fixture-reproducer",
+  "contributor_model": "anthropic/claude-opus-5.5",
+  "kind": "reproduction",
+  "requirement_ref": null,
+  "claim": "Independent reproduction of the accepted double release.",
+  "expected_success_actions": [],
+  "reproduces": "$CASE:ReleaseWithinDeposit",
+  "trace": {
+    "version": "transaction-trace-v2",
+    "attacker_source": "",
+    "deployments": [],
+    "actions": [
+      {
+        "account": 0,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 1,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 3,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "70"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      },
+      {
+        "account": 3,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:0",
+          "70"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      }
+    ]
+  }
+}

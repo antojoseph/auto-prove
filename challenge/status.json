@@ -1,0 +1,18 @@
+{
+  "current_version": 1,
+  "versions": 1,
+  "quiet_period": {
+    "last_accepted_at": null,
+    "days_since_last_accepted": null,
+    "submissions_since_last_accepted": 0,
+    "meaning": "time and submissions without a new accepted finding; never a security guarantee"
+  },
+  "pending_repairs": [],
+  "cases": {
+    "must_fail": 0,
+    "must_succeed": 2
+  },
+  "credits": 0,
+  "approval": "approved_automatically",
+  "contract_correspondence": "not_proved"
+}

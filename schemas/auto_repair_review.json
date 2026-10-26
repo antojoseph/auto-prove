@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "reviewed_candidate_digest": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "reject"
+      ]
+    },
+    "weakening_found": {
+      "type": "boolean"
+    },
+    "unrelated_changes": {
+      "type": "boolean"
+    },
+    "over_restrictive": {
+      "type": "boolean"
+    },
+    "reasons": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "reviewed_candidate_digest",
+    "verdict",
+    "weakening_found",
+    "unrelated_changes",
+    "over_restrictive",
+    "reasons"
+  ]
+}

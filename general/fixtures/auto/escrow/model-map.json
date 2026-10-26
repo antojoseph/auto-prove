@@ -1,0 +1,30 @@
+{
+  "state_type": "EscrowState",
+  "initial": "EscrowState.mk (fun _ => 0) (fun _ => 0)",
+  "actions": [
+    {
+      "target": "main",
+      "function": "deposit()",
+      "term": "depositE s $sender $value"
+    },
+    {
+      "target": "main",
+      "function": "release(address,uint256)",
+      "term": "releaseE s $arg0 $arg1 true"
+    }
+  ],
+  "observations": [
+    {
+      "probe": "Deposited",
+      "term": "s.deposited 0"
+    },
+    {
+      "probe": "Released",
+      "term": "s.released 0"
+    },
+    {
+      "probe": "OtherDeposited",
+      "term": "s.deposited 1"
+    }
+  ]
+}

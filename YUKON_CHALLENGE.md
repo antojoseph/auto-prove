@@ -1,5 +1,7 @@
 # Yukon internal challenge: intent-grounded smart-contract specifications
 
+> **Superseded for go-live by the automatic negative-case loop.** See [AUTOLOOP.md](AUTOLOOP.md) (design, gate, hosted workflow, go-live checklist). The v1 contribution benchmark described here is preserved under `challenge/legacy-v1/`.
+
 **Objective:** improve a reusable pipeline that receives Solidity source and English intent, generates meaningful security specifications, and supplies proofs, checked attacks, or explicit unresolved results. The same submission must work across new inputs without a bespoke family verifier.
 
 **Primary audience:** contract security researchers, formal-methods researchers and agent developers. Creators supply code, intended protections and approved threat assumptions. Solvers improve the reusable proposer/adversary prompts. A creator sees a requirement-to-target mapping, assumptions, actual Lean statements, transaction evidence, proof/refutation status, changes between revisions and unresolved questions.

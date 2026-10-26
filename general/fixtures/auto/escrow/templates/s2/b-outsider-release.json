@@ -1,0 +1,43 @@
+{
+  "contributor": "fixture-solver-gamma",
+  "contributor_model": "google/gemini-3-pro",
+  "kind": "attack",
+  "requirement_ref": null,
+  "claim": "An account that never deposited releases another payer's deposit to itself.",
+  "expected_success_actions": [],
+  "reproduces": "",
+  "trace": {
+    "version": "transaction-trace-v2",
+    "attacker_source": "",
+    "deployments": [],
+    "actions": [
+      {
+        "account": 0,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 1,
+        "target": "main",
+        "function": "deposit()",
+        "arguments": [],
+        "value_wei": "100",
+        "advance_seconds": 0
+      },
+      {
+        "account": 2,
+        "target": "main",
+        "function": "release(address,uint256)",
+        "arguments": [
+          "$account:1",
+          "100"
+        ],
+        "value_wei": "0",
+        "advance_seconds": 0
+      }
+    ]
+  }
+}
